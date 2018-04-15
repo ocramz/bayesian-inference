@@ -4,6 +4,8 @@
 
 Experiments with Bayesian inference
 
+*NB: Experimental and not ready for release*
+
 ### Algorithms
 
 - Approximate Bayesian Computation (ABC)

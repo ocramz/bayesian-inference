@@ -9,6 +9,16 @@ import Control.Monad.Primitive (PrimMonad(..))
 import System.Random.MWC.Probability (Prob(..), GenIO, samples, create, normal, uniformR)
 
 
+{-|
+
+References:
+
+- Approximate Bayesian computation scheme for parameter inference and model selection in dynamical systems - https://people.eecs.berkeley.edu/~jordan/sail/readings/toni-etal.pdf (ABC-Rejection, ABC-MCMC)
+
+
+
+-}
+
 
 {- | Algorithm 1: Rejection sampling ABC (from Pritchard 1999)
 
@@ -42,7 +52,7 @@ x0data n g = samples n (normal thetaMu0 thetaVar0) g
 
 generativeModel :: Prob IO (Double, Double)
 generativeModel = do
-  thetaMuStar <- uniformR (0, 2)
+  thetaMuStar <- uniformR (0, 5)
   x <- normal thetaMuStar thetaVar
   return (thetaMuStar, x)
   
@@ -50,15 +60,13 @@ withinBall :: (Ord a, Num a) => a -> a -> a -> Bool
 withinBall eps x0 x = abs (x - x0) <= eps
 
   
--- test :: Double -> Int -> GenIO -> IO [(Double, (Double, Double))]
-test :: Fractional b => Double -> Int -> GenIO -> IO (Double, b)
-test eps n g = do
+abcRejection :: Fractional b => Double -> Int -> GenIO -> IO (Double, b)
+abcRejection eps n g = do
   x0s <- x0data n g
   xs <- samples n generativeModel g 
   let
     xtot = zip x0s xs
     xs' = filter (\(x0, (_, x)) -> withinBall eps x0 x) xtot
-  -- return xs'
     thetas = map (\(_, (theta, _)) -> theta) xs'
     nf = length thetas
     rejectionRate = 1 - (fromIntegral nf / fromIntegral n)
