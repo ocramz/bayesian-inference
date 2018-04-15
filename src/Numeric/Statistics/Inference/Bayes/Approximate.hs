@@ -96,7 +96,7 @@ testAbcMcmc eps n = do
     proposal mu = normal mu 5
     simulator mu sig = normal mu sig
   gen <- create
-  -- | Data (fixed)
+  --  Data (fixed)
   x0s <- samples n (simulator thetaMu0 thetaVar0) gen
   abcMcmc prior proposal (`simulator` thetaVar) x0s 1000 eps 10 100 gen
 
