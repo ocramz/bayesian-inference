@@ -3,7 +3,7 @@ module Numeric.Statistics.Inference.Bayes.Approximate where
 
 -- import Data.Bool (bool)
 
-import Control.Monad (when, unless)
+import Control.Monad (when, unless, replicateM)
 -- import Control.Monad.State
 import Control.Monad.Trans.State
 import Control.Monad.Trans.Class (MonadTrans(..), lift)
@@ -82,11 +82,22 @@ abcRejection eps n g = do
 Choose prior function pi()
 
 1. theta* <- pi(theta)
-
-
 2. x* <- f(x | theta*)
 
 -}
+
+testAbcMcmc eps n = do
+  let
+    prior mu = normal mu 3
+    proposal mu = normal mu 5
+    simulator mu sig = normal mu sig
+  gen <- create
+  -- | Data (fixed)
+  x0s <- samples n (simulator thetaMu0 thetaVar0) gen
+  abcMcmc prior proposal (`simulator` thetaVar) x0s 1000 eps 1 100 gen
+
+  
+
 
 abcMcmc :: (Fractional a, Ord a, PrimMonad m) =>
            (Double -> Prob m Double)
@@ -96,10 +107,11 @@ abcMcmc :: (Fractional a, Ord a, PrimMonad m) =>
         -> Int
         -> a
         -> Double
+        -> Int
         -> Gen (PrimState m)
         -> m Double
-abcMcmc prior proposal simulator x0s n eps theta0 g =
-  execStateT (abcMcmcStep prior proposal simulator x0s n eps g) theta0
+abcMcmc prior proposal simulator x0s n eps theta0 niter g =
+  execStateT (replicateM niter $ abcMcmcStep prior proposal simulator x0s n eps g) theta0
 
 
 abcMcmcStep :: (PrimMonad m, Ord a, Fractional a) =>
