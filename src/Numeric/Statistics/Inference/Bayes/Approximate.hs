@@ -1,7 +1,9 @@
 {-# language FlexibleContexts #-}
+{-# language OverloadedStrings #-}
 module Numeric.Statistics.Inference.Bayes.Approximate where
 
 -- import Data.Bool (bool)
+import Data.Char (toUpper)
 
 import Control.Monad (when, unless, replicateM)
 -- import Control.Monad.State
@@ -10,6 +12,8 @@ import Control.Monad.Trans.Class (MonadTrans(..), lift)
 
 import GHC.Prim
 import Control.Monad.Primitive (PrimMonad(..))
+
+import Control.Monad.Log (MonadLog(..), WithSeverity(..), Severity(..), LoggingT(..), Handler, logInfo, logError)
 
 import System.Random.MWC.Probability (Prob(..), Gen, GenIO, samples, create, normal, uniformR, bernoulli)
 
@@ -191,3 +195,14 @@ mean xs = 1 / fromIntegral (length xs) * sum xs
 
 
   
+
+
+
+
+--
+
+bracketsUpp :: Show a => a -> String
+bracketsUpp p = unwords ["[", map toUpper (show p), "]"]
+
+withSeverity :: (t -> String) -> WithSeverity t -> String
+withSeverity k (WithSeverity u a ) = unwords [bracketsUpp u, k a]
