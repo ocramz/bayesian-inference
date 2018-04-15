@@ -26,10 +26,13 @@ Choose prior function pi()
 
 -- | Example 1.1 Find rejection rate of a mean parameter of a Gaussian RV
 
--- ground truth parameters
+-- | ground truth parameters
+thetaMu0, thetaVar0 :: Double
 thetaMu0 = 0.5
 thetaVar0 = 1
--- candidate parameters
+
+-- |candidate parameters
+thetaMu, thetaVar :: Double
 thetaMu = 1
 thetaVar = 2
 
@@ -37,28 +40,25 @@ thetaVar = 2
 x0data :: Int -> GenIO -> IO [Double]
 x0data n g = samples n (normal thetaMu0 thetaVar0) g
 
--- prior :: Prob IO Double
--- prior = uniformR (0, 3)
 
 generativeModel :: Prob IO (Double, Double)
 generativeModel = do
-  thetaStar <- uniformR (0, 3)
-  x <- normal thetaStar 5
-  return (thetaStar, x)
+  thetaMuStar <- uniformR (0, 3)
+  x <- normal thetaMuStar thetaVar
+  return (thetaMuStar, x)
   
 withinBall :: (Ord a, Num a) => a -> a -> a -> Bool
 withinBall eps x0 x = abs (x - x0) <= eps
 
--- keetp eps x0 (theta, x) =
---   bool (Just theta) Nothing (withinBall eps x0 x)
   
-test :: Double -> Int -> GenIO -> IO [(Double, (Double, Double))]
+-- test :: Double -> Int -> GenIO -> IO [(Double, (Double, Double))]
 test eps n g = do
   x0s <- x0data n g
   xs <- samples n generativeModel g 
   let
     xtot = zip x0s xs
-  pure $ filter (\(x0, (_, x)) -> withinBall eps x0 x) xtot
+    xs' = filter (\(x0, (_, x)) -> withinBall eps x0 x) xtot
+  return $ map (\(_, (theta, _)) -> theta) xs'
   
   
 
