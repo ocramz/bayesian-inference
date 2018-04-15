@@ -43,7 +43,7 @@ x0data n g = samples n (normal thetaMu0 thetaVar0) g
 
 generativeModel :: Prob IO (Double, Double)
 generativeModel = do
-  thetaMuStar <- uniformR (0, 3)
+  thetaMuStar <- uniformR (0, 2)
   x <- normal thetaMuStar thetaVar
   return (thetaMuStar, x)
   
@@ -58,7 +58,15 @@ test eps n g = do
   let
     xtot = zip x0s xs
     xs' = filter (\(x0, (_, x)) -> withinBall eps x0 x) xtot
-  return $ map (\(_, (theta, _)) -> theta) xs'
+  -- return xs'
+    thetas = map (\(_, (theta, _)) -> theta) xs'
+    nf = length thetas
+    rejectionRate = 1 - (fromIntegral nf / fromIntegral n)
+  return (mean thetas, rejectionRate)
+
+
+mean :: (Fractional a, Foldable t) => t a -> a
+mean xs = 1 / fromIntegral (length xs) * sum xs  
   
   
 
