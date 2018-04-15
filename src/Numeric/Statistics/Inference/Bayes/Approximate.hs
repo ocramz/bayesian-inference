@@ -94,7 +94,7 @@ testAbcMcmc eps n = do
   gen <- create
   -- | Data (fixed)
   x0s <- samples n (simulator thetaMu0 thetaVar0) gen
-  abcMcmc prior proposal (`simulator` thetaVar) x0s 1000 eps 1 100 gen
+  abcMcmc prior proposal (`simulator` thetaVar) x0s 1000 eps 10 100 gen
 
   
 
