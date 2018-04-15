@@ -13,19 +13,15 @@ import Control.Monad.Trans.Class (MonadTrans(..), lift)
 import GHC.Prim
 import Control.Monad.Primitive (PrimMonad(..))
 
-import Control.Monad.Log (MonadLog(..), WithSeverity(..), Severity(..), LoggingT(..), Handler, logInfo, logError)
+import Control.Monad.Log (MonadLog(..), WithSeverity(..), Severity(..), LoggingT(..), runLoggingT, PureLoggingT(..), Handler, logInfo, logError)
 
 import System.Random.MWC.Probability (Prob(..), Gen, GenIO, samples, create, normal, uniformR, bernoulli)
 
 
 {-|
-
 References:
 
 - Approximate Bayesian computation scheme for parameter inference and model selection in dynamical systems - https://people.eecs.berkeley.edu/~jordan/sail/readings/toni-etal.pdf (ABC-Rejection, ABC-MCMC)
-
-
-
 -}
 
 
@@ -39,7 +35,6 @@ Choose prior function pi()
           then accept theta*
           else reject theta*
 4. goto 1.
-
 -}
 
 -- | Example 1.1 Mean value and rejection rate of the mean parameter of a Gaussian RV
@@ -81,15 +76,14 @@ abcRejection eps n g = do
     rejectionRate = 1 - (fromIntegral nf / fromIntegral n)
   return (mean thetas, rejectionRate)
 
-{-| Algorithm 2: MCMC-ABC (from Marjoram 2003)
 
-Choose prior function pi()
 
-1. theta* <- pi(theta)
-2. x* <- f(x | theta*)
 
--}
 
+-- 
+
+
+-- testAbcMcmc :: Double -> Int -> IO Double
 testAbcMcmc eps n = do
   let
     prior mu = normal mu 3
@@ -103,34 +97,56 @@ testAbcMcmc eps n = do
   
 
 
-abcMcmc :: (Fractional a, Ord a, PrimMonad m) =>
-           (Double -> Prob m Double)
-        -> (Double -> Prob m Double)
-        -> (Double -> Prob m a)
-        -> [a]
-        -> Int
-        -> a
-        -> Double
-        -> Int
-        -> Gen (PrimState m)
-        -> m Double
+-- abcMcmc :: (Fractional a, Ord a, PrimMonad m, MonadLog (WithSeverity String) m) =>
+--            (Double -> Prob m Double)
+--         -> (Double -> Prob m Double)
+--         -> (Double -> Prob m a)
+--         -> [a]
+--         -> Int
+--         -> a
+--         -> Double
+--         -> Int
+--         -> Gen (PrimState m)
+--         -> m Double
 abcMcmc prior proposal simulator x0s n eps theta0 niter g =
   execStateT (replicateM niter $ abcMcmcStep prior proposal simulator x0s n eps g) theta0
 
+{-| Algorithm 2: MCMC-ABC (from Marjoram 2003)
+implemented from https://people.eecs.berkeley.edu/~jordan/sail/readings/toni-etal.pdf
 
-abcMcmcStep :: (PrimMonad m, Ord a, Fractional a) =>
-               (Double -> Prob m Double)
-            -> (Double -> Prob m Double)
-            -> (Double -> Prob m a)
-            -> [a]
-            -> Int
-            -> a
-            -> Gen (PrimState m)
-            -> StateT Double m ()
+Prior distribution pi(theta)
+Proposal distribution q(.|theta)
+Dataset x0
+
+
+abc-mcmc step:
+1. theta* <- q( . | theta_i )
+2. x* <- f( . | theta* )
+3. if d(x*, x0) <= epsilon, goto 4., else goto 5.
+4. if Bern(alpha)
+
+-- 1. theta* <- pi(theta)
+-- 2. x* <- f(x | theta*)
+-- 3. if d(x*, x0) <= epsilon, goto 4., else goto 5.
+-- 4. alpha = min(1, pi(theta*)q(thetai))
+-}
+
+
+-- abcMcmcStep :: (PrimMonad m, MonadLog (WithSeverity String) m, Ord a, Fractional a) =>
+--                (Double -> Prob m Double)
+--             -> (Double -> Prob m Double)
+--             -> (Double -> Prob m a)
+--             -> [a]
+--             -> Int
+--             -> a
+--             -> Gen (PrimState m)
+--             -> StateT Double m ()
 abcMcmcStep prior proposal simulator x0s n eps g = do
   thetai <- get
+  -- 1. sample theta* from the proposal distribution
   thetaStar <- lift $ sample (proposal thetai) g
-  -- simulate dataset
+  info ["theta* = ", show thetaStar]
+  -- 2. simulate dataset using theta*
   xStars <- lift $ samples n (simulator thetaStar) g
   if d x0s xStars <= eps
     then
@@ -138,9 +154,15 @@ abcMcmcStep prior proposal simulator x0s n eps g = do
         alpha <- lift $ acceptProb prior proposal thetaStar thetai g
         pa <- lift $ sample (bernoulli alpha) g
         if pa
-          then put thetaStar
+          then
+          do
+            -- info ["alpha = ", show alpha]
+            put thetaStar
           else put thetai
     else put thetai
+
+info :: MonadLog (WithSeverity String) m => [String] -> m ()
+info ws = logInfo $ unwords ws
 
 
 acceptProb :: (Monad m, Ord b, Fractional b) =>
