@@ -145,7 +145,6 @@ abcMcmcStep prior proposal simulator x0s n eps g = do
   thetai <- get
   -- 1. sample theta* from the proposal distribution
   thetaStar <- lift $ sample (proposal thetai) g
-  -- info ["theta* = ", show thetaStar]
   lift $ infoIO ["theta* = ", show thetaStar]
   -- 2. simulate dataset using theta*
   xStars <- lift $ samples n (simulator thetaStar) g
@@ -157,7 +156,7 @@ abcMcmcStep prior proposal simulator x0s n eps g = do
         alpha <- lift $ acceptProb prior proposal thetaStar thetai g
         lift $ infoIO ["alpha = ", show alpha]        
         pa <- lift $ sample (bernoulli alpha) g
-        -- lift $ infoIO ["Bern"]
+        lift $ infoIO ["Bern(alpha) = ", show pa]
         if pa
           then
           do
