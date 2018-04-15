@@ -1,7 +1,7 @@
 name:                bayesian-inference
 version:             0.1.0.0
--- synopsis:
--- description:
+synopsis:            Bayesian inference in Haskell
+description:         Bayesian inference in Haskell
 homepage:            https://github.com/ocramz/bayesian-inference
 license:             BSD3
 license-file:        LICENSE
@@ -22,8 +22,10 @@ library
                        Numeric.Statistics.Inference.Bayes.Approximate
   build-depends:       base >= 4.7 && < 5
                      , ghc-prim
+                     , mtl
                      , mwc-probability
                      , primitive
+                     , transformers
                      , vector
 
 -- executable bayesian-inference

@@ -1,12 +1,17 @@
-{-# language TypeFamilies #-}
+{-# language FlexibleContexts #-}
 module Numeric.Statistics.Inference.Bayes.Approximate where
 
 -- import Data.Bool (bool)
 
+import Control.Monad (when, unless)
+-- import Control.Monad.State
+import Control.Monad.Trans.State
+import Control.Monad.Trans.Class (MonadTrans(..), lift)
+
 import GHC.Prim
 import Control.Monad.Primitive (PrimMonad(..))
 
-import System.Random.MWC.Probability (Prob(..), GenIO, samples, create, normal, uniformR)
+import System.Random.MWC.Probability (Prob(..), Gen, GenIO, samples, create, normal, uniformR, bernoulli)
 
 
 {-|
@@ -33,7 +38,7 @@ Choose prior function pi()
 
 -}
 
--- | Example 1.1 Find rejection rate of a mean parameter of a Gaussian RV
+-- | Example 1.1 Mean value and rejection rate of the mean parameter of a Gaussian RV
 
 -- | ground truth parameters
 thetaMu0, thetaVar0 :: Double
@@ -72,7 +77,84 @@ abcRejection eps n g = do
     rejectionRate = 1 - (fromIntegral nf / fromIntegral n)
   return (mean thetas, rejectionRate)
 
+{-| Algorithm 2: MCMC-ABC (from Marjoram 2003)
 
+Choose prior function pi()
+
+1. theta* <- pi(theta)
+
+
+2. x* <- f(x | theta*)
+
+-}
+
+abcMcmc :: (Fractional a, Ord a, PrimMonad m) =>
+           (Double -> Prob m Double)
+        -> (Double -> Prob m Double)
+        -> (Double -> Prob m a)
+        -> [a]
+        -> Int
+        -> a
+        -> Double
+        -> Gen (PrimState m)
+        -> m Double
+abcMcmc prior proposal simulator x0s n eps theta0 g =
+  execStateT (abcMcmcStep prior proposal simulator x0s n eps g) theta0
+
+
+abcMcmcStep :: (PrimMonad m, Ord a, Fractional a) =>
+               (Double -> Prob m Double)
+            -> (Double -> Prob m Double)
+            -> (Double -> Prob m a)
+            -> [a]
+            -> Int
+            -> a
+            -> Gen (PrimState m)
+            -> StateT Double m ()
+abcMcmcStep prior proposal simulator x0s n eps g = do
+  thetai <- get
+  thetaStar <- lift $ sample (proposal thetai) g
+  -- simulate dataset
+  xStars <- lift $ samples n (simulator thetaStar) g
+  if d x0s xStars <= eps
+    then
+      do 
+        alpha <- lift $ acceptProb prior proposal thetaStar thetai g
+        pa <- lift $ sample (bernoulli alpha) g
+        if pa
+          then put thetaStar
+          else put thetai
+    else put thetai
+
+
+acceptProb :: (Monad m, Ord b, Fractional b) =>
+              (t -> Prob m b)   -- ^ Prior
+           -> (t -> Prob m b)   -- ^ Proposal
+           -> t                 -- ^ Candidate parameter value
+           -> t                 -- ^ Current parameter value
+           -> Gen (PrimState m) -- ^ Generator
+           -> m b
+acceptProb p q thetaStar theta gen = do
+  a <- sample (p thetaStar) gen
+  b <- sample (q thetaStar) gen
+  c <- sample (p theta) gen
+  d <- sample (q theta) gen
+  let alpha = min 1 (a*b/(c*d))
+  return alpha
+  
+
+-- abcMCMC eps n g = do
+--   x0s <- x0data n g
+--   xs <- samples n generativeModel g 
+
+d :: (Foldable t, Fractional a) => t a -> t a -> a
+d = distL1 mean
+
+-- | L1 distance
+distL1 :: Num a => (t -> a) -> t -> t -> a
+distL1 f x0s xs = abs (f x0s - f xs)
+
+-- | Mean of a list of real numbers
 mean :: (Fractional a, Foldable t) => t a -> a
 mean xs = 1 / fromIntegral (length xs) * sum xs  
   
