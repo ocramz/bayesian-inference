@@ -1,13 +1,12 @@
 {-# language TypeFamilies #-}
 module Numeric.Statistics.Inference.Bayes.Approximate where
 
-import Data.Bool (bool)
+-- import Data.Bool (bool)
 
--- import GHC.Prim
+import GHC.Prim
 import Control.Monad.Primitive (PrimMonad(..))
-import Control.Monad
 
-import System.Random.MWC.Probability (Prob(..), Gen(..), GenIO, samples, create, normal, uniform, uniformR)
+import System.Random.MWC.Probability (Prob(..), GenIO, samples, create, normal, uniformR)
 
 
 
@@ -52,6 +51,7 @@ withinBall eps x0 x = abs (x - x0) <= eps
 
   
 -- test :: Double -> Int -> GenIO -> IO [(Double, (Double, Double))]
+test :: Fractional b => Double -> Int -> GenIO -> IO (Double, b)
 test eps n g = do
   x0s <- x0data n g
   xs <- samples n generativeModel g 
