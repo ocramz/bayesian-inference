@@ -12,7 +12,7 @@ category:            Machine Learning
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
-tested-with:         GHC == 8.0.2
+tested-with:         GHC == 8.2.2
 
 library
   default-language:    Haskell2010
@@ -21,6 +21,7 @@ library
   exposed-modules:     Numeric.Statistics.Inference.Bayes
   build-depends:       base >= 4.7 && < 5
                      , mwc-probability
+                     , vector
 
 -- executable bayesian-inference
 --   default-language:    Haskell2010
