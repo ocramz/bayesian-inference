@@ -145,24 +145,31 @@ abcMcmcStep prior proposal simulator x0s n eps g = do
   thetai <- get
   -- 1. sample theta* from the proposal distribution
   thetaStar <- lift $ sample (proposal thetai) g
-  info ["theta* = ", show thetaStar]
+  -- info ["theta* = ", show thetaStar]
+  lift $ infoIO ["theta* = ", show thetaStar]
   -- 2. simulate dataset using theta*
   xStars <- lift $ samples n (simulator thetaStar) g
-  if d x0s xStars <= eps
+  let dCurrent = d x0s xStars
+  lift $ infoIO ["d(x*, x0) = ", show dCurrent]
+  if dCurrent <= eps
     then
       do 
         alpha <- lift $ acceptProb prior proposal thetaStar thetai g
+        lift $ infoIO ["alpha = ", show alpha]        
         pa <- lift $ sample (bernoulli alpha) g
+        -- lift $ infoIO ["Bern"]
         if pa
           then
           do
-            -- info ["alpha = ", show alpha]
             put thetaStar
           else put thetai
     else put thetai
 
-info :: MonadLog (WithSeverity String) m => [String] -> m ()
-info ws = logInfo $ unwords ws
+infoIO :: [String] -> IO ()    
+infoIO ws = putStrLn $ unwords ws
+
+-- info :: MonadLog (WithSeverity String) m => [String] -> m ()
+-- info ws = logInfo $ unwords ws
 
 
 acceptProb :: (Monad m, Ord b, Fractional b) =>
