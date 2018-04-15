@@ -114,6 +114,8 @@ abcMcmc prior proposal simulator x0s n eps theta0 niter g =
 {-| Algorithm 2: MCMC-ABC (from Marjoram 2003)
 implemented from https://people.eecs.berkeley.edu/~jordan/sail/readings/toni-etal.pdf
 
+discussion of ABC-MCMC : http://onlinelibrary.wiley.com/doi/10.1111/j.1461-0248.2011.01640.x/pdf
+
 Prior distribution pi(theta)
 Proposal distribution q(.|theta)
 Dataset x0
