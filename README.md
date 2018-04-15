@@ -10,4 +10,6 @@ Experiments with Bayesian inference
 
 - Approximate Bayesian Computation (ABC)
 
-  - Rejection Sampling ABC 
+  - Rejection Sampling ABC
+  
+  - Markov Chain Monte Carlo ABC
