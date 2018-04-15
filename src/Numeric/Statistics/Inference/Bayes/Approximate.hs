@@ -1,9 +1,13 @@
 {-# language TypeFamilies #-}
 module Numeric.Statistics.Inference.Bayes.Approximate where
 
-import Control.Monad.Primitive (PrimMonad(..))
+import Data.Bool (bool)
 
-import System.Random.MWC.Probability (Prob(..), Gen(..), samples, create, normal, uniform)
+-- import GHC.Prim
+import Control.Monad.Primitive (PrimMonad(..))
+import Control.Monad
+
+import System.Random.MWC.Probability (Prob(..), Gen(..), GenIO, samples, create, normal, uniform, uniformR)
 
 
 
@@ -30,13 +34,31 @@ thetaMu = 1
 thetaVar = 2
 
 -- | Data (fixed)
-x0data :: IO [Double]
-x0data = do
-  let n = 1000
-  g <- create
-  samples n (normal thetaMu0 thetaVar0) g
-  
+x0data :: Int -> GenIO -> IO [Double]
+x0data n g = samples n (normal thetaMu0 thetaVar0) g
 
+-- prior :: Prob IO Double
+-- prior = uniformR (0, 3)
+
+generativeModel :: Prob IO (Double, Double)
+generativeModel = do
+  thetaStar <- uniformR (0, 3)
+  x <- normal thetaStar 5
+  return (thetaStar, x)
+  
+withinBall :: (Ord a, Num a) => a -> a -> a -> Bool
+withinBall eps x0 x = abs (x - x0) <= eps
+
+-- keetp eps x0 (theta, x) =
+--   bool (Just theta) Nothing (withinBall eps x0 x)
+  
+test :: Double -> Int -> GenIO -> IO [(Double, (Double, Double))]
+test eps n g = do
+  x0s <- x0data n g
+  xs <- samples n generativeModel g 
+  let
+    xtot = zip x0s xs
+  pure $ filter (\(x0, (_, x)) -> withinBall eps x0 x) xtot
   
   
 
