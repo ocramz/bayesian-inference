@@ -85,7 +85,7 @@ abcRejection eps n g = do
 -- 
 
 
--- testAbcMcmc :: Double -> Int -> IO Double
+testAbcMcmc :: Double -> Int -> IO [Double]
 testAbcMcmc eps n = do
   let
     prior mu = normal mu 3
@@ -99,19 +99,20 @@ testAbcMcmc eps n = do
   
 
 
--- abcMcmc :: (Fractional a, Ord a, PrimMonad m, MonadLog (WithSeverity String) m) =>
---            (Double -> Prob m Double)
---         -> (Double -> Prob m Double)
---         -> (Double -> Prob m a)
---         -> [a]
---         -> Int
---         -> a
---         -> Double
---         -> Int
---         -> Gen (PrimState m)
---         -> m Double
+
+abcMcmc :: (Show a, Ord a, Fractional a) =>
+           (Double -> Prob IO Double)
+        -> (Double -> Prob IO Double)
+        -> (Double -> Prob IO a)
+        -> [a]
+        -> Int
+        -> a
+        -> Double
+        -> Int
+        -> Gen RealWorld
+        -> IO [Double]
 abcMcmc prior proposal simulator x0s n eps theta0 niter g =
-  runStateT (replicateM niter $ abcMcmcStep prior proposal simulator x0s n eps g) theta0
+  fst <$> runStateT (replicateM niter $ abcMcmcStep prior proposal simulator x0s n eps g) theta0
 
 {-| Algorithm 2: MCMC-ABC 
 
@@ -139,16 +140,15 @@ References:
 
 -}
 
-
--- abcMcmcStep :: (PrimMonad m, MonadLog (WithSeverity String) m, Ord a, Fractional a) =>
---                (Double -> Prob m Double)
---             -> (Double -> Prob m Double)
---             -> (Double -> Prob m a)
---             -> [a]
---             -> Int
---             -> a
---             -> Gen (PrimState m)
---             -> StateT Double m ()
+abcMcmcStep :: (Show a, Ord a, Fractional a) =>
+               (Double -> Prob IO Double)
+            -> (Double -> Prob IO Double)
+            -> (Double -> Prob IO a)
+            -> [a]
+            -> Int
+            -> a
+            -> Gen RealWorld
+            -> StateT Double IO Double
 abcMcmcStep prior proposal simulator x0s n eps g = do
   thetai <- get
   -- 1. sample theta* from the proposal distribution
@@ -158,30 +158,39 @@ abcMcmcStep prior proposal simulator x0s n eps g = do
   xStars <- lift $ samples n (simulator thetaStar) g
   let dCurrent = d x0s xStars
   lift $ infoIO ["d(x*, x0) = ", show dCurrent]
-  put thetai
-  when (dCurrent <= eps) $ do
+  if dCurrent <= eps
+    then
+      do 
         alpha <- lift $ acceptProb prior proposal thetaStar thetai g
         lift $ infoIO ["alpha = ", show alpha]        
         pa <- lift $ sample (bernoulli alpha) g
         lift $ infoIO ["Bern(alpha) = ", show pa]
         let theta' = if pa then thetaStar else thetai
         put theta'
-  -- if dCurrent <= eps
-  --   then
-  --     do 
+        return theta'
+        -- if pa
+        --   then
+        --   do
+        --     let theta' = thetaStar
+        --     -- put thetaStar
+        --   else put thetai
+    else
+      do
+        put thetai
+        return thetai
+         
+  -- put thetai
+  -- when (dCurrent <= eps) $ do
   --       alpha <- lift $ acceptProb prior proposal thetaStar thetai g
   --       lift $ infoIO ["alpha = ", show alpha]        
   --       pa <- lift $ sample (bernoulli alpha) g
   --       lift $ infoIO ["Bern(alpha) = ", show pa]
   --       let theta' = if pa then thetaStar else thetai
   --       put theta'
-  --       -- if pa
-  --       --   then
-  --       --   do
-  --       --     let theta' = thetaStar
-  --       --     -- put thetaStar
-  --       --   else put thetai
-  --   else put thetai
+  --       return theta'
+  -- return thetai
+  
+  
 
 
 
