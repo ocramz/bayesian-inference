@@ -3,6 +3,8 @@ module Main where
 import Test.Hspec
 import Test.Hspec.QuickCheck
 
+import Numeric.Statistics.Utils
+import Numeric.Statistics.Inference.Bayes.Approximate
 
 main :: IO ()
 main = hspec spec

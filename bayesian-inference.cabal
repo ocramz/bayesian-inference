@@ -30,6 +30,9 @@ library
                      , primitive
                      , transformers
                      , vector
+                     -- DEBUG
+                     , hspec
+                     , QuickCheck
 
 -- executable bayesian-inference
 --   default-language:    Haskell2010
