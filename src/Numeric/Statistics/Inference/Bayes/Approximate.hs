@@ -1,11 +1,13 @@
 {-# language FlexibleContexts #-}
 {-# language OverloadedStrings #-}
+{-# language DeriveFunctor, GeneralizedNewtypeDeriving #-}
+{-# language TypeApplications #-}
 module Numeric.Statistics.Inference.Bayes.Approximate where
 
 -- import Data.Bool (bool)
 import Data.Char (toUpper)
 
-import Control.Monad (when, unless, replicateM)
+import Control.Monad (when, unless, replicateM, ap)
 -- import Control.Monad.State
 import Control.Monad.Trans.State
 import Control.Monad.Trans.Class (MonadTrans(..), lift)
@@ -109,7 +111,7 @@ testAbcMcmc eps n = do
 --         -> Gen (PrimState m)
 --         -> m Double
 abcMcmc prior proposal simulator x0s n eps theta0 niter g =
-  execStateT (replicateM niter $ abcMcmcStep prior proposal simulator x0s n eps g) theta0
+  runStateT (replicateM niter $ abcMcmcStep prior proposal simulator x0s n eps g) theta0
 
 {-| Algorithm 2: MCMC-ABC 
 
@@ -156,19 +158,32 @@ abcMcmcStep prior proposal simulator x0s n eps g = do
   xStars <- lift $ samples n (simulator thetaStar) g
   let dCurrent = d x0s xStars
   lift $ infoIO ["d(x*, x0) = ", show dCurrent]
-  if dCurrent <= eps
-    then
-      do 
+  put thetai
+  when (dCurrent <= eps) $ do
         alpha <- lift $ acceptProb prior proposal thetaStar thetai g
         lift $ infoIO ["alpha = ", show alpha]        
         pa <- lift $ sample (bernoulli alpha) g
         lift $ infoIO ["Bern(alpha) = ", show pa]
-        if pa
-          then
-          do
-            put thetaStar
-          else put thetai
-    else put thetai
+        let theta' = if pa then thetaStar else thetai
+        put theta'
+  -- if dCurrent <= eps
+  --   then
+  --     do 
+  --       alpha <- lift $ acceptProb prior proposal thetaStar thetai g
+  --       lift $ infoIO ["alpha = ", show alpha]        
+  --       pa <- lift $ sample (bernoulli alpha) g
+  --       lift $ infoIO ["Bern(alpha) = ", show pa]
+  --       let theta' = if pa then thetaStar else thetai
+  --       put theta'
+  --       -- if pa
+  --       --   then
+  --       --   do
+  --       --     let theta' = thetaStar
+  --       --     -- put thetaStar
+  --       --   else put thetai
+  --   else put thetai
+
+
 
 infoIO :: [String] -> IO ()    
 infoIO ws = putStrLn $ unwords ws
@@ -191,6 +206,12 @@ acceptProb p q thetaStar theta gen = do
   d <- sample (q theta) gen
   let alpha = min 1 (a*b/(c*d))
   return alpha
+
+
+
+  
+
+
   
 
 -- abcMCMC eps n g = do
