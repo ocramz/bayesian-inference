@@ -27,6 +27,7 @@ library
                      , logging-effect
                      , mtl
                      , mwc-probability
+                     , numhask >= 0.2
                      , primitive
                      , transformers
                      , vector

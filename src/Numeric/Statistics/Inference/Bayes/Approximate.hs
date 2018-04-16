@@ -21,13 +21,22 @@ import System.Random.MWC.Probability (Prob(..), Gen, GenIO, samples, create, nor
 
 import Numeric.Statistics.Utils
 
+import NumHask.Algebra
+import Prelude hiding (Num(..), fromIntegral, (/), (*))
 
-{-|
-References:
 
-- Approximate Bayesian computation scheme for parameter inference and model selection in dynamical systems - https://people.eecs.berkeley.edu/~jordan/sail/readings/toni-etal.pdf (ABC-Rejection, ABC-MCMC)
--}
 
+-- * Utilities
+
+-- aor eps p x0 x =
+--   if withinBall eps x0 x then Right (Sample p x) else Left (Sample p x)  
+
+
+data Sample p a = Sample { sParam :: p, sVal :: a} deriving (Eq, Show)
+
+
+
+-- * ABC
 
 {- | Algorithm 1: Rejection sampling ABC (from Pritchard 1999)
 
@@ -40,6 +49,7 @@ Choose prior function pi()
           else reject theta*
 4. goto 1.
 -}
+
 
 -- | Example 1.1 Mean value and rejection rate of the mean parameter of a Gaussian RV
 
@@ -64,11 +74,15 @@ generativeModel = do
   x <- normal thetaMuStar thetaVar
   return (thetaMuStar, x)
   
-withinBall :: (Ord a, Num a) => a -> a -> a -> Bool
+withinBall :: (Ord a, AdditiveGroup a, Signed a) => a -> a -> a -> Bool
 withinBall eps x0 x = abs (x - x0) <= eps
 
   
-abcRejection :: Fractional b => Double -> Int -> GenIO -> IO (Double, b)
+abcRejection :: (AdditiveGroup b, MultiplicativeGroup b, FromInteger b) =>
+                Double
+             -> Int
+             -> Gen RealWorld
+             -> IO (Double, b)
 abcRejection eps n g = do
   x0s <- x0data n g
   xs <- samples n generativeModel g 
@@ -77,17 +91,11 @@ abcRejection eps n g = do
     xs' = filter (\(x0, (_, x)) -> withinBall eps x0 x) xtot
     thetas = map (\(_, (theta, _)) -> theta) xs'
     nf = length thetas
-    rejectionRate = 1 - (fromIntegral nf / fromIntegral n)
+    rejectionRate = one - (fromIntegral nf / fromIntegral n)
   return (mean thetas, rejectionRate)
 
 
-
-
-
--- 
-
-
-testAbcMcmc :: Double -> Int -> IO [Double]
+-- testAbcMcmc :: Double -> Int -> IO [Double]
 testAbcMcmc eps n = do
   let
     prior mu = normal mu 3
@@ -102,21 +110,21 @@ testAbcMcmc eps n = do
 
 
 
-abcMcmc :: (Show a, Ord a, Fractional a) =>
-           (Double -> Prob IO Double)
-        -> (Double -> Prob IO Double)
-        -> (Double -> Prob IO a)
-        -> [a]
-        -> Int
-        -> a
-        -> Double
-        -> Int
-        -> Gen RealWorld
-        -> IO [Double]
+-- abcMcmc :: (Show a, Ord a, Fractional a) =>
+--            (Double -> Prob IO Double)
+--         -> (Double -> Prob IO Double)
+--         -> (Double -> Prob IO a)
+--         -> [a]
+--         -> Int
+--         -> a
+--         -> Double
+--         -> Int
+--         -> Gen RealWorld
+--         -> IO [Double]
 abcMcmc prior proposal simulator x0s n eps theta0 niter g =
   fst <$> runStateT (replicateM niter $ abcMcmcStep prior proposal simulator x0s n eps g) theta0
 
-{-| Algorithm 2: MCMC-ABC 
+{-| Algorithm 2: MCMC-ABC
 
 ABC-MCMC step:
 
@@ -142,15 +150,16 @@ References:
 
 -}
 
-abcMcmcStep :: (Show a, Ord a, Fractional a) =>
-               (Double -> Prob IO Double)
-            -> (Double -> Prob IO Double)
-            -> (Double -> Prob IO a)
-            -> [a]
-            -> Int
-            -> a
-            -> Gen RealWorld
-            -> StateT Double IO Double
+abcMcmcStep ::
+  (Show a, Ord a, FromInteger a, MultiplicativeGroup a, Signed a, AdditiveGroup a) =>
+     (Double -> Prob IO Double)
+  -> (Double -> Prob IO Double)
+  -> (Double -> Prob IO a)
+  -> [a]
+  -> Int
+  -> a
+  -> Gen RealWorld
+  -> StateT Double IO Double
 abcMcmcStep prior proposal simulator x0s n eps g = do
   thetai <- get
   -- 1. sample theta* from the proposal distribution
@@ -170,31 +179,13 @@ abcMcmcStep prior proposal simulator x0s n eps g = do
         let theta' = if pa then thetaStar else thetai
         put theta'
         return theta'
-        -- if pa
-        --   then
-        --   do
-        --     let theta' = thetaStar
-        --     -- put thetaStar
-        --   else put thetai
     else
       do
         put thetai
         return thetai
          
- 
-  
-  
 
-
-
-infoIO :: [String] -> IO ()    
-infoIO ws = putStrLn $ unwords ws
-
--- info :: MonadLog (WithSeverity String) m => [String] -> m ()
--- info ws = logInfo $ unwords ws
-
-
-acceptProb :: (Monad m, Ord b, Fractional b) =>
+acceptProb :: (Monad m, Ord b, MultiplicativeGroup b) =>
               (t -> Prob m b)   -- ^ Prior
            -> (t -> Prob m b)   -- ^ Proposal
            -> t                 -- ^ Candidate parameter value
@@ -206,11 +197,17 @@ acceptProb p q thetaStar theta gen = do
   b <- sample (q thetaStar) gen
   c <- sample (p theta) gen
   d <- sample (q theta) gen
-  let alpha = min 1 (a*b/(c*d))
+  let alpha = min one (a*b/(c*d))
   return alpha
 
 
 
+
+infoIO :: [String] -> IO ()    
+infoIO ws = putStrLn $ unwords ws
+
+-- info :: MonadLog (WithSeverity String) m => [String] -> m ()
+-- info ws = logInfo $ unwords ws
   
 
 
@@ -241,3 +238,12 @@ bracketsUpp p = unwords ["[", map toUpper (show p), "]"]
 
 withSeverity :: (t -> String) -> WithSeverity t -> String
 withSeverity k (WithSeverity u a ) = unwords [bracketsUpp u, k a]
+
+
+
+
+{-|
+References:
+
+- Approximate Bayesian computation scheme for parameter inference and model selection in dynamical systems - https://people.eecs.berkeley.edu/~jordan/sail/readings/toni-etal.pdf (ABC-Rejection, ABC-MCMC)
+-}
