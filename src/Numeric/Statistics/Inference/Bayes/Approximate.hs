@@ -179,16 +179,7 @@ abcMcmcStep prior proposal simulator x0s n eps g = do
         put thetai
         return thetai
          
-  -- put thetai
-  -- when (dCurrent <= eps) $ do
-  --       alpha <- lift $ acceptProb prior proposal thetaStar thetai g
-  --       lift $ infoIO ["alpha = ", show alpha]        
-  --       pa <- lift $ sample (bernoulli alpha) g
-  --       lift $ infoIO ["Bern(alpha) = ", show pa]
-  --       let theta' = if pa then thetaStar else thetai
-  --       put theta'
-  --       return theta'
-  -- return thetai
+ 
   
   
 
@@ -237,7 +228,27 @@ distL1 f x0s xs = abs (f x0s - f xs)
 -- | Mean of a list of real numbers
 mean :: (Fractional a, Foldable t) => t a -> a
 mean xs = 1 / fromIntegral (length xs) * sum xs  
-  
+
+-- | Autocorrelation as a function of the lag
+acLag :: Fractional a => Int -> [a] -> Either String a
+acLag lag ts
+  | lag > nn = Left "lag cannot be > length of the data"
+  | otherwise = Right $ tsNum / tsDen
+  where
+    nn = length ts
+    mu = mean ts
+    ts0 = shiftData mu ts
+    tsNum = inner (take (nn - lag) ts0) (drop lag ts0)
+    tsDen = inner ts0 ts0
+
+inner :: Num a => [a] -> [a] -> a
+inner u v = sum $ zipWith (*) u v    
+
+shiftData :: Num b => b -> [b] -> [b]
+shiftData xMu = map (\x -> x - xMu)
+
+-- centerData xs = map (\x -> x - xmean) xs
+--   where xmean = mean xs
   
 
 
