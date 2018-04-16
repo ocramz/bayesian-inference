@@ -19,6 +19,8 @@ import Control.Monad.Log (MonadLog(..), WithSeverity(..), Severity(..), LoggingT
 
 import System.Random.MWC.Probability (Prob(..), Gen, GenIO, samples, create, normal, uniformR, bernoulli)
 
+import Numeric.Statistics.Utils
+
 
 {-|
 References:
@@ -212,49 +214,7 @@ acceptProb p q thetaStar theta gen = do
   
 
 
-  
-
--- abcMCMC eps n g = do
---   x0s <- x0data n g
---   xs <- samples n generativeModel g 
-
-d :: (Foldable t, Fractional a) => t a -> t a -> a
-d = distL1 mean
-
--- | L1 distance
-distL1 :: Num a => (t -> a) -> t -> t -> a
-distL1 f x0s xs = abs (f x0s - f xs)
-
--- | Mean of a list of real numbers
-mean :: (Fractional a, Foldable t) => t a -> a
-mean xs = 1 / fromIntegral (length xs) * sum xs  
-
--- | Autocorrelation as a function of the lag
-acLag :: Fractional a => Int -> [a] -> Either String a
-acLag lag ts
-  | lag > nn = Left "lag cannot be > length of the data"
-  | otherwise = Right $ tsNum / tsDen
-  where
-    nn = length ts
-    mu = mean ts
-    ts0 = shiftData mu ts
-    tsNum = inner (take (nn - lag) ts0) (drop lag ts0)
-    tsDen = inner ts0 ts0
-
-inner :: Num a => [a] -> [a] -> a
-inner u v = sum $ zipWith (*) u v    
-
-shiftData :: Num b => b -> [b] -> [b]
-shiftData xMu = map (\x -> x - xMu)
-
--- centerData xs = map (\x -> x - xmean) xs
---   where xmean = mean xs
-  
-
-
-
-
-
+ 
 
 
 
