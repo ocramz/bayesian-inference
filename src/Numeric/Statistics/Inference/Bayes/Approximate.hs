@@ -23,7 +23,7 @@ import System.Random.MWC.Probability.Transition (Transition(..), mkTransition, r
 import Numeric.Statistics.Utils
 
 import NumHask.Algebra
-import Prelude hiding (Num(..), fromIntegral, (/), (*), pi, (**), exp, recip)
+import Prelude hiding (Num(..), fromIntegral, (/), (*), pi, (**), exp, recip, sum, product)
 
 
 
@@ -232,7 +232,6 @@ infoIO ws = putStrLn $ unwords ws
 -- | Univariate distributions which are supported over R
 data HasDensityR a =
     Normal a a
-  -- | Uniform a a
   deriving (Eq, Show)
 
 density :: (Fractional a, ExpField a, TrigField a) =>
@@ -245,6 +244,10 @@ density dens x = case dens of
       recip (2.0 * pi * s2) * exp (- (x - mu)**2 / 2 * s2)
 
  
+gammaI :: (Enum p, ExpField p) => p -> p -> p -> p
+gammaI n a x = (x ** a) * exp (negate x) * sers where
+  sers = sum [x ** i / denn i | i <- [zero .. n]]
+  denn m = product [a + i | i <- [zero .. m]]
 
 
 
