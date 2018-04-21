@@ -202,6 +202,21 @@ acceptProb p q thetaStar theta gen = do
   return alpha
 
 
+-- | Metropolis correction, symmetric proposal distribution
+acceptProbSymm :: (Monad m, Ord b, MultiplicativeGroup b) =>
+                  (t -> Prob m b)   -- ^ Prior
+               -> t                 -- ^ Candidate parameter value (theta*)
+               -> t                 -- ^ Current parameter value
+               -> Gen (PrimState m)
+               -> m b
+acceptProbSymm p thetaStar theta gen = do
+  a <- sample (p thetaStar) gen
+  b <- sample (p theta) gen
+  return (a / b)
+  -- let alpha = min one (a / b)
+  -- return alpha
+  
+
 
 
 infoIO :: [String] -> IO ()    
