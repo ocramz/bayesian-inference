@@ -41,6 +41,7 @@ packages:
 # (e.g., acme-missiles-0.3)
 extra-deps: 
 - numhask-0.2.0.0
+- mwc-probability-transition-0.3.0.3
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
