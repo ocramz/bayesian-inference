@@ -18,6 +18,7 @@ import Control.Monad.Primitive (PrimMonad(..))
 import Control.Monad.Log (MonadLog(..), WithSeverity(..), Severity(..), LoggingT(..), runLoggingT, PureLoggingT(..), Handler, logInfo, logError)
 
 import System.Random.MWC.Probability (Prob(..), Gen, GenIO, samples, create, normal, uniformR, bernoulli)
+import System.Random.MWC.Probability.Transition (Transition(..), mkTransition, runTransition)
 
 import Numeric.Statistics.Utils
 
