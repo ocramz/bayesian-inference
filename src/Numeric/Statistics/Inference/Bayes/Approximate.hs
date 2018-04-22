@@ -243,11 +243,49 @@ density dens x = case dens of
     in
       recip (2.0 * pi * s2) * exp (- (x - mu)**2 / 2 * s2)
 
- 
-gammaI :: (Enum p, ExpField p) => p -> p -> p -> p
-gammaI n a x = (x ** a) * exp (negate x) * sers where
-  sers = sum [x ** i / denn i | i <- [zero .. n]]
-  denn m = product [a + i | i <- [zero .. m]]
+
+-- | Incomplete Gamma function
+--
+
+-- | Upper incomplete Gamma
+
+
+
+
+-- | Generalized Laguerre polynomials
+
+gLaguerre :: (Eq p, Fractional p, MultiplicativeGroup p, AdditiveGroup p) =>
+             p   -- ^ Polynomial order (Natural number)
+          -> p   -- ^ Parameter (if == 0, we get regular Laguerre polynomials)
+          -> p   -- ^ Evaluation point
+          -> p
+gLaguerre nn alpha x = case nn of
+  0 -> 1
+  1 -> 1 + alpha - x
+  k -> let
+    a = (2 * (k - 1) + 1 + alpha - x) * gLaguerre (k - 1) alpha x
+    b = (k + alpha) * gLaguerre (k - 2) alpha x 
+    in (a - b) / k 
+
+laguerre :: (Eq p, Fractional p, MultiplicativeGroup p, AdditiveGroup p) =>
+            p   -- ^ Polynomial order
+         -> p   -- ^ Evaluation point
+         -> p
+laguerre nn = gLaguerre nn 0    
+
+
+
+--
+
+-- gammaI :: (Enum p, ExpField p) => p -> p -> p -> p
+-- gammaI n a x = (x ** a) * exp (negate x) * sers where
+--   sers = sum [x ** i / denn i | i <- [zero .. n]]
+--   denn m = product [a + i | i <- [zero .. m]]
+
+-- gammaI0 :: (Enum p, ExpField p) => p -> p -> p
+-- gammaI0 n = gammaI n zero
+
+
 
 
 
