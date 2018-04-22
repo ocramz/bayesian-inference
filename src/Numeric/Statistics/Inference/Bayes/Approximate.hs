@@ -263,8 +263,9 @@ density nmax dens x = case dens of
   Gamma k theta -> gammaPdf nmax k theta x
 
 
--- | Typeclass based approach for samplign and evaluating PDF
 
+
+-- | Typeclass based approach for samplign and evaluating PDF
 
 data NormalPdf a = NormalPdf {
     normalMean :: a
@@ -286,8 +287,13 @@ instance (TrigField a, ExpField a) => CDPDF (NormalPdf a) where
   type CDValue (NormalPdf a) = a
   cdPdf (NormalPdf mu sig) = normalPdf mu sig
 
+--
 
 
+data N m a = N { nParams :: NormalPdf a, sSample :: Prob m a }
+
+mkNormal :: PrimMonad m => Double -> Double -> N m Double
+mkNormal mu sig = N (NormalPdf mu sig) (normal mu sig)
 
 
 
