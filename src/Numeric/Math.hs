@@ -1,7 +1,13 @@
 module Numeric.Math (
   -- * Distributions
+  -- ** Uniform
+  uniformPdf
+  -- ** Exponential
+  , expPdf
+  -- ** Normal 
+  , normalPdf , stdNormalPdf
   -- ** Gamma
-    gammaPdf
+  , gammaPdf
     -- * Gamma function 
   , gammaW
   -- * Laguerre polynomials
@@ -13,7 +19,42 @@ module Numeric.Math (
                     ) where
 
 import NumHask.Algebra
-import Prelude hiding (Num(..), fromIntegral, (/), (*), pi, (**), (^^), exp, recip, sum, product)
+import Prelude hiding (Num(..), fromIntegral, (/), (*), pi, (**), (^^), sqrt, exp, recip, sum, product)
+
+
+-- | Uniform distribution over [a, b]
+uniformPdf :: (Ord p, MultiplicativeInvertible p, Signed p,
+      AdditiveGroup p) =>
+              p -- ^ First endpoint
+           -> p -- ^ Second endpoint
+           -> p -- ^ Evaluation point
+           -> p
+uniformPdf a b x | x >= a && x <= b = recip z
+                 | otherwise = zero where
+                     z = abs (b - a)
+
+-- | Normal distribution
+normalPdf :: (ExpField a, TrigField a) =>
+             a -- ^ Mean
+          -> a -- ^ Standard deviation
+          -> a -- ^ Evaluation point
+          -> a
+normalPdf mu sig x = recip z * exp (negate (one / two) * ((x - mu)/sig) ** two)
+  where
+    two = one + one
+    z = sqrt (two * pi) * sig
+
+-- | Standard normal distribution (zero mean, unit variance)
+stdNormalPdf :: (ExpField a, TrigField a) => a -> a
+stdNormalPdf = normalPdf zero one    
+
+-- | Exponential probability density function
+expPdf :: (Ord p, ExpField p) =>
+          p -- ^ Rate parameter
+       -> p -- ^ Evaluation point
+       -> p
+expPdf lambda x | x >= zero = lambda * exp (negate lambda * x)
+                | otherwise = zero
 
 
 -- | Gamma probability density function, shape-scale parametrization 
