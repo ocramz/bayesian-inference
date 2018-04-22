@@ -24,6 +24,7 @@ library
                        Numeric.Math
   other-modules:       System.Random.MWC.Probability.Conditional
   build-depends:       base >= 4.7 && < 5
+                     , exceptions
                      , ghc-prim
                      , logging-effect
                      , mtl
@@ -53,7 +54,9 @@ test-suite spec
   main-is:             LibSpec.hs
   build-depends:       base
                      , bayesian-inference
+                     , exceptions
                      , hspec
+                     , numhask
                      , QuickCheck
 
 source-repository head
