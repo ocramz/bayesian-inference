@@ -203,6 +203,21 @@ acceptProb p q thetaStar theta gen = do
   return alpha
 
 
+acceptProb' :: (ExpField p, TrigField p, Signed p, Fractional p, Enum p) =>
+               p     -- ^ Gamma approximation order (where necessary)
+            -> PDF p -- ^ Prior
+            -> PDF p -- ^ Proposal
+            -> p     -- ^ Candidate parameter value
+            -> p     -- ^ Current parameter value
+            -> p
+acceptProb' nmax p q thetaStar theta = min one (a*b/(c*d)) where
+  a = density nmax p thetaStar
+  b = density nmax q thetaStar
+  c = density nmax p theta
+  d = density nmax q theta
+
+
+
 -- | Metropolis correction, symmetric proposal distribution
 acceptProbSymm :: (Monad m, Ord b, MultiplicativeGroup b) =>
                   (t -> Prob m b)   -- ^ Prior
@@ -231,7 +246,7 @@ infoIO ws = putStrLn $ unwords ws
 
 
 -- | Univariate distributions which are supported over R
-data HasDensityR a =
+data PDF a =
       Normal a a
     | Uniform a a
     | Exponential a
@@ -239,12 +254,12 @@ data HasDensityR a =
   deriving (Eq, Show)
 
 density :: (ExpField a, TrigField a, Signed a, Fractional a, Enum a) =>
-     a -> HasDensityR a -> p -> a -> a
+     a -> PDF a -> a -> a
 density nmax dens x = case dens of
-  Normal mu sig -> normalPdf mu sig
-  Uniform a b -> uniformPdf a b
-  Exponential lambda -> expPdf lambda
-  Gamma k theta -> gammaPdf nmax k theta
+  Normal mu sig -> normalPdf mu sig x
+  Uniform a b -> uniformPdf a b x
+  Exponential lambda -> expPdf lambda x
+  Gamma k theta -> gammaPdf nmax k theta x
 
 
 
