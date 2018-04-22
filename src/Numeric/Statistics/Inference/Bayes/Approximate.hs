@@ -21,6 +21,7 @@ import System.Random.MWC.Probability (Prob(..), Gen, GenIO, samples, create, nor
 import System.Random.MWC.Probability.Transition (Transition(..), mkTransition, runTransition)
 
 import Numeric.Statistics.Utils
+import Numeric.Math
 
 import NumHask.Algebra
 import Prelude hiding (Num(..), fromIntegral, (/), (*), pi, (**), (^^), exp, recip, sum, product)
@@ -231,17 +232,19 @@ infoIO ws = putStrLn $ unwords ws
 
 -- | Univariate distributions which are supported over R
 data HasDensityR a =
-    Normal a a
+      Normal a a
+    | Uniform a a
+    | Exponential a
+    | Gamma a a
   deriving (Eq, Show)
 
-density :: (Fractional a, ExpField a, TrigField a) =>
-     HasDensityR a -> a -> a
-density dens x = case dens of
-  Normal mu sig ->
-    let
-      s2 = sig ** 2.0 
-    in
-      recip (2.0 * pi * s2) * exp (- (x - mu)**2 / 2 * s2)
+density :: (ExpField a, TrigField a, Signed a, Fractional a, Enum a) =>
+     a -> HasDensityR a -> p -> a -> a
+density nmax dens x = case dens of
+  Normal mu sig -> normalPdf mu sig
+  Uniform a b -> uniformPdf a b
+  Exponential lambda -> expPdf lambda
+  Gamma k theta -> gammaPdf nmax k theta
 
 
 
