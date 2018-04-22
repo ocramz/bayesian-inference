@@ -7,7 +7,7 @@ import Test.Hspec.QuickCheck
 import Control.Monad (unless)
 import Control.Exception (Exception(..))
 import Data.Typeable
-import Control.Monad.Catch (MonadThrow(..), MonadCatch(..), throwM)
+import Control.Monad.Catch (MonadThrow(..), throwM)
 
 import Numeric.Statistics.Utils
 import Numeric.Statistics.Inference.Bayes.Approximate

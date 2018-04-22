@@ -1,12 +1,42 @@
-module Numeric.Math where
+module Numeric.Math (
+  -- * Distributions
+  -- ** Gamma
+    gammaPdf
+    -- * Gamma function 
+  , gammaW
+  -- * Laguerre polynomials
+  , gLaguerre, laguerre, laguerreE
+  -- * Utilities
+  , binomialCoeff  
+  , factorial
+
+                    ) where
 
 import NumHask.Algebra
 import Prelude hiding (Num(..), fromIntegral, (/), (*), pi, (**), (^^), exp, recip, sum, product)
 
 
+-- | Gamma probability density function, shape-scale parametrization 
+gammaPdf :: (Fractional a, Enum a, ExpField a) =>
+            a -- ^ Approximation order of the Gamma function (Natural number)
+         -> a -- ^ Shape parameter
+         -> a -- ^ Scale parameter
+         -> a -- ^ Evaluation point
+         -> a
+gammaPdf nmax k theta x =
+  recip (gammaW nmax k * (theta ** k)) * x ** (k - one) * exp (negate x / theta)
+
+
 
 -- | Gamma function, expressed as a Weierstrass form
-gammaW :: (Fractional p, Enum p, ExpField p) => p -> p -> p
+--
+-- NB : Not sure about the order of convergence, set the approximation order > 1e3
+--
+-- Reference : http://mathworld.wolfram.com/GammaFunction.html
+gammaW :: (Fractional p, Enum p, ExpField p) =>
+          p  -- ^ Approximation order (Natural number)
+       -> p  -- ^ Evaluation point
+       -> p
 gammaW nmax z = recip a where
   a = z * exp (emc * z) * prods
   prods = product [(one + z/r) * exp (negate z / r) | r <- [one .. nmax]]
@@ -39,21 +69,35 @@ laguerre :: (Eq p, MultiplicativeGroup p, AdditiveGroup p) =>
 laguerre nn = gLaguerre nn zero  
 
 
--- | Laguerre polynomials, exact formulation 
-laguerreE :: (Enum a, ExpField a, Eq a) => a -> a -> a
+-- | Laguerre polynomials, exact formulation
+--
+-- Uses the binomial coefficient
+laguerreE :: (Enum a, ExpField a, Eq a, Ord a) =>
+             a -- ^ Polynomial order (Natural number)
+          -> a -- ^ Evaluation point
+          -> a
 laguerreE n x =
   sum [ (x ** k) * binomialCoeff n k * (negate one ** k) / factorial k | k <- [zero .. n]]
 
 
-factorial :: (AdditiveGroup p, Multiplicative p, Eq p) => p -> p
+-- | Factorial function
+factorial :: (AdditiveGroup p, Multiplicative p, Eq p, Ord p) =>
+             p  -- ^ Non-negative integer
+          -> p
 factorial nn = recur nn where
   recur n
+    | n < zero = error "Argument must be a non-negative integer"
     | n == zero = one
     | n == one = one
     | otherwise = n * recur (n - one)
 
-binomialCoeff :: (AdditiveGroup a, Eq a, MultiplicativeGroup a) =>
-     a -> a -> a
+-- | Binomial coefficient ("n over k")
+--
+-- n ! / (k ! (n - k) !)
+binomialCoeff :: (AdditiveGroup a, Eq a, MultiplicativeGroup a, Ord a) =>
+                 a -- ^ Natural number
+              -> a -- ^ Natural number
+              -> a
 binomialCoeff n k = factorial n / (factorial k * factorial (n - k))
   
 
