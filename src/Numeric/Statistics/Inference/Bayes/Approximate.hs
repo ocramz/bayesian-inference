@@ -2,6 +2,7 @@
 {-# language OverloadedStrings #-}
 {-# language DeriveFunctor, GeneralizedNewtypeDeriving #-}
 {-# language TypeApplications #-}
+{-# language MultiParamTypeClasses, FlexibleInstances, TypeFamilies #-}
 module Numeric.Statistics.Inference.Bayes.Approximate where
 
 -- import Data.Bool (bool)
@@ -203,18 +204,18 @@ acceptProb p q thetaStar theta gen = do
   return alpha
 
 
-acceptProb' :: (ExpField p, TrigField p, Signed p, Fractional p, Enum p) =>
-               p     -- ^ Gamma approximation order (where necessary)
-            -> PDF p -- ^ Prior
-            -> PDF p -- ^ Proposal
-            -> p     -- ^ Candidate parameter value
-            -> p     -- ^ Current parameter value
-            -> p
-acceptProb' nmax p q thetaStar theta = min one (a*b/(c*d)) where
-  a = density nmax p thetaStar
-  b = density nmax q thetaStar
-  c = density nmax p theta
-  d = density nmax q theta
+-- acceptProb' :: (ExpField p, TrigField p, Signed p, Fractional p, Enum p) =>
+--                p     -- ^ Gamma approximation order (where necessary)
+--             -> PDF p -- ^ Prior
+--             -> PDF p -- ^ Proposal
+--             -> p     -- ^ Candidate parameter value
+--             -> p     -- ^ Current parameter value
+--             -> p
+-- acceptProb' nmax p q thetaStar theta = min one (a*b/(c*d)) where
+--   a = density nmax p thetaStar
+--   b = density nmax q thetaStar
+--   c = density nmax p theta
+--   d = density nmax q theta
 
 
 
@@ -260,6 +261,31 @@ density nmax dens x = case dens of
   Uniform a b -> uniformPdf a b x
   Exponential lambda -> expPdf lambda x
   Gamma k theta -> gammaPdf nmax k theta x
+
+
+-- | Typeclass based approach for samplign and evaluating PDF
+
+
+data NormalPdf a = NormalPdf {
+    normalMean :: a
+  , normalStd :: a }
+                           
+class CDSampleable m p where
+  type CDSample p :: *
+  cdSample :: p -> Prob m (CDSample p)
+
+class CDPDF p where
+  type CDValue p :: *
+  cdPdf :: p -> CDValue p -> CDValue p
+
+instance PrimMonad m => CDSampleable m (NormalPdf Double) where
+  type CDSample (NormalPdf Double) = Double
+  cdSample (NormalPdf mu sig) = normal mu sig
+
+instance (TrigField a, ExpField a) => CDPDF (NormalPdf a) where
+  type CDValue (NormalPdf a) = a
+  cdPdf (NormalPdf mu sig) = normalPdf mu sig
+
 
 
 
