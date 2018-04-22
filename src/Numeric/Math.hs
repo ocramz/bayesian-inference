@@ -3,20 +3,15 @@ module Numeric.Math where
 import NumHask.Algebra
 import Prelude hiding (Num(..), fromIntegral, (/), (*), pi, (**), (^^), exp, recip, sum, product)
 
--- | Incomplete Gamma function
---
 
--- | Upper incomplete Gamma function 
-gammaIU
-  :: (ExpField a, Enum a, Eq a) => a -> a -> a -> a
-gammaIU nmax a x =
-  (x ** a) * exp (negate x) * sum [ gLaguerre n a x / (n + one) | n <- [zero .. nmax]]
 
-gamma :: (Eq a, Enum a, ExpField a) => a -> a -> a
-gamma nmax a = gammaIU nmax a zero
-
-gamma10 :: (Fractional a, Eq a, Enum a, ExpField a) => a -> a
-gamma10 = gamma 10
+-- | Gamma function, expressed as a Weierstrass form
+gammaW :: (Fractional p, Enum p, ExpField p) => p -> p -> p
+gammaW nmax z = recip a where
+  a = z * exp (emc * z) * prods
+  prods = product [(one + z/r) * exp (negate z / r) | r <- [one .. nmax]]
+  -- Euler-Mascheroni constant
+  emc = 0.5772156649015328606065120900824024310421593359399235988057672348848677267776646
 
 
 -- | Generalized Laguerre polynomials
@@ -48,9 +43,6 @@ laguerre nn = gLaguerre nn zero
 laguerreE :: (Enum a, ExpField a, Eq a) => a -> a -> a
 laguerreE n x =
   sum [ (x ** k) * binomialCoeff n k * (negate one ** k) / factorial k | k <- [zero .. n]]
-
-  
-
 
 
 factorial :: (AdditiveGroup p, Multiplicative p, Eq p) => p -> p
