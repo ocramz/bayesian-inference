@@ -5,15 +5,20 @@ import Test.Hspec.QuickCheck
 
 import Numeric.Statistics.Utils
 import Numeric.Statistics.Inference.Bayes.Approximate
+import Numeric.Math
 
 main :: IO ()
 main = hspec spec
 
 spec :: Spec
 spec =
-  describe "Lib" $ do
-    it "works" $ do
-      True `shouldBe` True
+  describe "Numeric.Math" $ do
+    it "laguerreE evaluates Laguerre polynomial L_2 in 2" $ 
+      (laguerreE 2 2 :: Double) `shouldBe` (- 1)
+    it "laguerre evaluates Laguerre polynomial L_2 in 2" $ 
+      (laguerre 2 2 :: Double) `shouldBe` (- 1)      
+    -- it "works" $ do
+    --   True `shouldBe` True
     -- prop "ourAdd is commutative" $ \x y ->
     --   ourAdd x y `shouldBe` ourAdd y x
 
