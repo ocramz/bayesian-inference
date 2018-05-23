@@ -11,7 +11,7 @@ import Control.Monad.Trans.Class (MonadTrans(..), lift)
 import System.Random.MWC.Probability (Prob(..), Gen, GenIO, samples, create, normal, standardNormal, uniform, uniformR, bernoulli, Variate(..))
 
 import NumHask.Algebra
-import Prelude hiding (Num(..), fromIntegral, (/), (*), pi, (**), (^^), exp, recip, sum, product, sqrt)
+import Prelude hiding (Num(..), fromIntegral, (/), (*), pi, (**), (^^), exp, recip, sum, product, sqrt, log)
 
 -- * The Mighty Metropolis-Hastings
 
@@ -114,6 +114,18 @@ postProb rho n g = do
 
 lhSingle :: (TrigField a, ExpField a) => a -> a -> a -> a
 lhSingle rho xi yi = one / (two * pi * sqrt s) * exp (negate (sqr xi - two * rho * xi * yi + sqr yi)/(two * s)) where
+  s = one - sqr rho
+
+-- | Posterior Log-probability
+postLogProb
+  :: PrimMonad m => Double -> Int -> Gen (PrimState m) -> m Double
+postLogProb rho n g = do
+  (x1s, x2s) <- createCorrelatedData 1 1 rho n g
+  let llh = sum $ zipWith (\xi yi -> logLhSingle rho xi yi) x1s x2s
+  pure $ log (rhoPrior rho) + llh
+
+logLhSingle :: (ExpField a, TrigField a) => a -> a -> a -> a
+logLhSingle rho xi yi = log (one / (two * pi * sqrt s)) + (negate (sqr xi - two * rho * xi * yi + sqr yi)/(two * s)) where
   s = one - sqr rho
 
 -- | Jeffreys' prior on correlation parameter 'rho' of two standard Normal rv's (non-informative prior for covariance matrices)
