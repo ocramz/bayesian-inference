@@ -16,18 +16,12 @@ import NumHask.Algebra
 import Prelude hiding (Num(..), fromIntegral, (/), (*), pi, (**), (^^), exp, recip, sum, product, sqrt, log)
 
 
--- testMh :: Int -> Int -> Gen RealWorld -> IO [Double]
--- testMh n nBurn g = drop nBurn <$> mh' logh uniform qProposal piPost n g
---   where
---     qProposal rhoi = uniformR (rhoi - 0.07, rhoi + 0.07)
---     piPost rhoi = postLogProb rhoi n
---     logh _ = pure ()
 
--- testMH :: Int
---        -> Int
---        -> Double
---        -> Gen RealWorld
---        -> IO [Double]
+testMH :: Int
+       -> Int
+       -> Double
+       -> Gen RealWorld
+       -> IO ([Double], Double, Double)
 testMH n nBurn rhoTrue g = do
   x12s <- sample (createCorrelatedData' 1 1 rhoTrue n) g
   let qProposal rhoi = uniformR (rhoi - 0.07, rhoi + 0.07)
@@ -215,7 +209,7 @@ covarCholesky sxx syy rho = (a, b, c) where
 postProb :: PrimMonad m => Double -> Int -> Gen (PrimState m) -> m Double
 postProb rho n g = do
   (x1s, x2s) <- createCorrelatedData 1 1 rho n g
-  let lh = product $ zipWith (\xi yi -> lhSingle rho xi yi) x1s x2s
+  let lh = product $ zipWith (lhSingle rho) x1s x2s
   pure $ rhoPrior rho * lh
 
 lhSingle :: (TrigField a, ExpField a) => a -> a -> a -> a
