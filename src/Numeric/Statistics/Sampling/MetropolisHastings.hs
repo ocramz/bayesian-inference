@@ -106,8 +106,8 @@ covarCholesky sxx syy rho = (a, b, c) where
 -- | Posterior probability
 --
 -- NB : the result is numerically small so it's best to rewrite in terms of log-probabilities
-post :: PrimMonad m => Double -> Int -> Gen (PrimState m) -> m Double
-post rho n g = do
+postProb :: PrimMonad m => Double -> Int -> Gen (PrimState m) -> m Double
+postProb rho n g = do
   (x1s, x2s) <- createCorrelatedData 1 1 rho n g
   let lh = product $ zipWith (\xi yi -> lhSingle rho xi yi) x1s x2s
   pure $ rhoPrior rho * lh
