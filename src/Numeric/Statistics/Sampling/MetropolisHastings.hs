@@ -66,8 +66,8 @@ mhStep' :: (Variate a, Show a, Ord a, MultiplicativeGroup a,
         -> Transition String a m a
 mhStep' qProposal piPost = mkTransition smodel transition msgf where
   smodel xim = do 
-    xCand <- qProposal xim  -- ^ sample from the proposal distribution
-    alpha <- metropolis' qProposal piPost xCand xim -- ^ evaluate acceptance probability with Metropolis rule
+    xCand <- qProposal xim  -- sample from the proposal distribution
+    alpha <- metropolis' qProposal piPost xCand xim -- evaluate acceptance probability with Metropolis rule
     u <- uniform
     pure (xCand, alpha, u)
   transition xim (xCand, alpha, u) = (s', s')
@@ -116,8 +116,8 @@ mhStep :: (Ord s, MultiplicativeGroup s, PrimMonad m, Variate s) =>
        -> StateT s m s
 mhStep qProposal piPost g = do
   xim <- get
-  xCand <- lift $ sample (qProposal xim) g  -- ^ sample from the proposal distribution
-  alpha <- lift $ metropolis qProposal piPost g xCand xim -- ^ evaluate acceptance probability with Metropolis rule
+  xCand <- lift $ sample (qProposal xim) g  -- sample from the proposal distribution
+  alpha <- lift $ metropolis qProposal piPost g xCand xim -- evaluate acceptance probability with Metropolis rule
   u <- lift $ sample uniform g
   let xi = if u < alpha then xCand else xim
   put xi
