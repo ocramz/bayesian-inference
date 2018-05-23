@@ -8,8 +8,19 @@ Experiments with Bayesian inference
 
 ### Algorithms
 
+- General-purpose
+
+  - Metropolis-Hastings
+
 - Approximate Bayesian Computation (ABC)
 
   - Rejection Sampling ABC
   
   - Markov Chain Monte Carlo ABC
+
+
+
+
+### References
+
+Yildirim, I. - Bayesian inference: Metropolis-Hastings sampling, 2012 (http://www.mit.edu/~ilkery/papers/MetropolisHastingsSampling.pdf)
