@@ -10,36 +10,25 @@ import Control.Monad.Trans.Class (MonadTrans(..), lift)
 
 import System.Random.MWC.Probability (Prob(..), Gen, GenIO, samples, create, normal, standardNormal, uniform, uniformR, bernoulli, Variate(..))
 import System.Random.MWC.Probability.Transition -- (Transition(..), mkTransition, runTransition)
+import qualified Control.Monad.Log as L
 
 import NumHask.Algebra
 import Prelude hiding (Num(..), fromIntegral, (/), (*), pi, (**), (^^), exp, recip, sum, product, sqrt, log)
 
 -- * The Mighty Metropolis-Hastings
 
-mh :: (Ord s, MultiplicativeGroup s, PrimMonad m, Variate s) =>
-      Prob m s
-   -> (s -> Prob m s) -- ^ Proposal distribution
-   -> (s -> Prob m s)
-   -> Int
-   -> Gen (PrimState m)
-   -> m [s]
-mh qPrior qProposal piPrior n g = do
+mh' :: (Variate a, Show a, Ord a, MultiplicativeGroup a, PrimMonad m) =>
+       L.Handler m String
+    -> Prob m a
+    -> (a -> Prob m a)
+    -> (a -> Prob m a)
+    -> Int
+    -> Gen (PrimState m)
+    -> m [a]
+mh' lh qPrior qProposal piPrior n g = do
   x0 <- sample qPrior g
-  evalStateT (replicateM n $ mhStep qProposal piPrior g) x0
-
-mhStep :: (Ord s, MultiplicativeGroup s, PrimMonad m, Variate s) =>
-          (s -> Prob m s)
-       -> (s -> Prob m s)
-       -> Gen (PrimState m)
-       -> StateT s m s
-mhStep qProposal piPrior g = do
-  xim <- get
-  xCand <- lift $ sample (qProposal xim) g  -- ^ sample from the proposal distribution
-  alpha <- lift $ metropolis qProposal piPrior g xCand xim -- ^ evaluate acceptance probability with Metropolis rule
-  u <- lift $ sample uniform g
-  let xi = if u < alpha then xCand else xim
-  put xi
-  return xi
+  evalTransition lh (mhStep' qProposal piPrior) n x0 g
+  
 
 -- | Metropolis-Hastings step in terms of 'Transition'
 mhStep' :: (Variate a, Show a, Ord a, MultiplicativeGroup a,
@@ -67,7 +56,39 @@ metropolis' qProposal piPrior xCand xim = do
   pic <- piPrior xCand
   qcand <- qProposal xim
   pixim <- piPrior xim
-  return $ min one (qxim * pic / (qcand * pixim))    
+  return $ min one (qxim * pic / (qcand * pixim))
+
+  
+
+
+
+mh :: (Ord s, MultiplicativeGroup s, PrimMonad m, Variate s) =>
+      Prob m s
+   -> (s -> Prob m s) -- ^ Proposal distribution
+   -> (s -> Prob m s)
+   -> Int
+   -> Gen (PrimState m)
+   -> m [s]
+mh qPrior qProposal piPrior n g = do
+  x0 <- sample qPrior g
+  evalStateT (replicateM n $ mhStep qProposal piPrior g) x0
+
+mhStep :: (Ord s, MultiplicativeGroup s, PrimMonad m, Variate s) =>
+          (s -> Prob m s)
+       -> (s -> Prob m s)
+       -> Gen (PrimState m)
+       -> StateT s m s
+mhStep qProposal piPrior g = do
+  xim <- get
+  xCand <- lift $ sample (qProposal xim) g  -- ^ sample from the proposal distribution
+  alpha <- lift $ metropolis qProposal piPrior g xCand xim -- ^ evaluate acceptance probability with Metropolis rule
+  u <- lift $ sample uniform g
+  let xi = if u < alpha then xCand else xim
+  put xi
+  return xi
+
+
+   
   
 -- | Metropolis rule
 metropolis :: (Monad m, Ord b, MultiplicativeGroup b) =>
