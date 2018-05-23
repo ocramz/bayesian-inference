@@ -19,14 +19,14 @@ import Control.Monad.Primitive (PrimMonad(..), PrimState(..))
 import Control.Monad.Log (MonadLog(..), WithSeverity(..), Severity(..), LoggingT(..), runLoggingT, PureLoggingT(..), Handler, logInfo, logError)
 
 -- import System.Random.MWC (Variate(..))
-import System.Random.MWC.Probability (Prob(..), Gen, GenIO, samples, create, normal, uniform, uniformR, bernoulli, Variate(..))
+import System.Random.MWC.Probability (Prob(..), Gen, GenIO, samples, create, normal, standardNormal, uniform, uniformR, bernoulli, Variate(..))
 import System.Random.MWC.Probability.Transition (Transition(..), mkTransition, runTransition)
 
 import Numeric.Statistics.Utils
 import Numeric.Math
 
 import NumHask.Algebra
-import Prelude hiding (Num(..), fromIntegral, (/), (*), pi, (**), (^^), exp, recip, sum, product)
+import Prelude hiding (Num(..), fromIntegral, (/), (*), pi, (**), (^^), exp, recip, sum, product, sqrt)
 
 
 
@@ -40,62 +40,6 @@ data Sample p a = Sample { sParam :: p, sVal :: a } deriving (Eq, Show)
 
 
 
-
-
-
--- * The Mighty Metropolis-Hastings
-
-mh :: (Ord s, MultiplicativeGroup s, PrimMonad m, Variate s) =>
-      Prob m s
-   -> (s -> Prob m s)
-   -> (s -> Prob m s)
-   -> Int
-   -> Gen (PrimState m)
-   -> m [s]
-mh qPrior qCond piPrior n g = do
-  x0 <- sample qPrior g
-  evalStateT (replicateM n $ mhStep qCond piPrior g) x0
-
-mhStep :: (Ord s, MultiplicativeGroup s, PrimMonad m, Variate s) =>
-          (s -> Prob m s)
-       -> (s -> Prob m s)
-       -> Gen (PrimState m)
-       -> StateT s m s
-mhStep qCond piPrior g = do
-  xim <- get
-  xCand <- lift $ sample (qCond xim) g
-  alpha <- lift $ metropolis qCond piPrior g xCand xim
-  u <- lift $ sample uniform g
-  let xi = if u < alpha then xCand else xim
-  put xi
-  return xi
-
-metropolis :: (Monad m, Ord b, MultiplicativeGroup b) =>
-              (t -> Prob m b)
-           -> (t -> Prob m b)
-           -> Gen (PrimState m)
-           -> t
-           -> t
-           -> m b
-metropolis qCond piPrior g xCand xim = do
-  qxim <- sample (qCond xCand) g
-  pic <- sample (piPrior xCand) g
-  qcand <- sample (qCond xim) g
-  pixim <- sample (piPrior xim) g
-  return $ min one $ qxim * pic / (qcand * pixim)
-
-
--- | Metropolis acceptance function in the case of a symmetric proposal
-metropolisSymmProposal :: (Monad m, Ord b, MultiplicativeGroup b) =>
-                          (t -> Prob m b)
-                       -> Gen (PrimState m)
-                       -> t
-                       -> t
-                       -> m b
-metropolisSymmProposal piPrior g xCand xim = do 
-  pic <- sample (piPrior xCand) g
-  pixim <- sample (piPrior xim) g
-  return $ min one $ pic / pixim
 
 
 
