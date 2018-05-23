@@ -17,40 +17,41 @@ import Prelude hiding (Num(..), fromIntegral, (/), (*), pi, (**), (^^), exp, rec
 
 mh :: (Ord s, MultiplicativeGroup s, PrimMonad m, Variate s) =>
       Prob m s
-   -> (s -> Prob m s)
+   -> (s -> Prob m s) -- ^ Proposal distribution
    -> (s -> Prob m s)
    -> Int
    -> Gen (PrimState m)
    -> m [s]
-mh qPrior qCond piPrior n g = do
+mh qPrior qProposal piPrior n g = do
   x0 <- sample qPrior g
-  evalStateT (replicateM n $ mhStep qCond piPrior g) x0
+  evalStateT (replicateM n $ mhStep qProposal piPrior g) x0
 
 mhStep :: (Ord s, MultiplicativeGroup s, PrimMonad m, Variate s) =>
           (s -> Prob m s)
        -> (s -> Prob m s)
        -> Gen (PrimState m)
        -> StateT s m s
-mhStep qCond piPrior g = do
+mhStep qProposal piPrior g = do
   xim <- get
-  xCand <- lift $ sample (qCond xim) g
-  alpha <- lift $ metropolis qCond piPrior g xCand xim
+  xCand <- lift $ sample (qProposal xim) g  -- ^ sample from the proposal distribution
+  alpha <- lift $ metropolis qProposal piPrior g xCand xim -- ^ evaluate acceptance probability with Metropolis rule
   u <- lift $ sample uniform g
   let xi = if u < alpha then xCand else xim
   put xi
   return xi
 
+-- | Metropolis rule
 metropolis :: (Monad m, Ord b, MultiplicativeGroup b) =>
-              (t -> Prob m b)
-           -> (t -> Prob m b)
+              (t -> Prob m b) -- ^ Proposal distribution
+           -> (t -> Prob m b)  
            -> Gen (PrimState m)
            -> t
            -> t
            -> m b
-metropolis qCond piPrior g xCand xim = do
-  qxim <- sample (qCond xCand) g
+metropolis qProposal piPrior g xCand xim = do
+  qxim <- sample (qProposal xCand) g
   pic <- sample (piPrior xCand) g
-  qcand <- sample (qCond xim) g
+  qcand <- sample (qProposal xim) g
   pixim <- sample (piPrior xim) g
   return $ min one (qxim * pic / (qcand * pixim))
 
@@ -69,7 +70,7 @@ metropolisSymmProposal piPrior g xCand xim = do
 
 
 
--- | sanity check: 
+-- * sanity check: 
 --
 -- Correlation parameter of two Gaussian r.v.'s
 --
@@ -101,3 +102,35 @@ covarCholesky sxx syy rho = (a, b, c) where
   a = sqrt sxx
   b = rho / a
   c = sqrt (syy - rho ** (one + one) / sxx)
+
+-- | Posterior probability
+--
+-- NB : the result is numerically small so it's best to rewrite in terms of log-probabilities
+post :: PrimMonad m => Double -> Int -> Gen (PrimState m) -> m Double
+post rho n g = do
+  (x1s, x2s) <- createCorrelatedData 1 1 rho n g
+  let lh = product $ zipWith (\xi yi -> lhSingle rho xi yi) x1s x2s
+  pure $ rhoPrior rho * lh
+
+lhSingle :: (TrigField a, ExpField a) => a -> a -> a -> a
+lhSingle rho xi yi = one / (two * pi * sqrt s) * exp (negate (sqr xi - two * rho * xi * yi + sqr yi)/(two * s)) where
+  s = one - sqr rho
+
+-- | Jeffreys' prior on correlation parameter 'rho' of two standard Normal rv's (non-informative prior for covariance matrices)
+rhoPrior :: ExpField a => a -> a
+rhoPrior rho = one / (one - sqr rho) ** (three / two)
+
+
+
+
+
+
+
+
+-- | ffs, NumHask
+sqr :: Multiplicative a => a -> a
+sqr x = x * x
+
+two, three :: (Additive a, MultiplicativeUnital a) => a
+two = one + one
+three = two + one
