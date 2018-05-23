@@ -9,6 +9,7 @@ import Control.Monad.Trans.State
 import Control.Monad.Trans.Class (MonadTrans(..), lift)
 
 import System.Random.MWC.Probability (Prob(..), Gen, GenIO, samples, create, normal, standardNormal, uniform, uniformR, bernoulli, Variate(..))
+import System.Random.MWC.Probability.Transition -- (Transition(..), mkTransition, runTransition)
 
 import NumHask.Algebra
 import Prelude hiding (Num(..), fromIntegral, (/), (*), pi, (**), (^^), exp, recip, sum, product, sqrt, log)
@@ -40,6 +41,34 @@ mhStep qProposal piPrior g = do
   put xi
   return xi
 
+-- | Metropolis-Hastings step in terms of 'Transition'
+mhStep' :: (Variate a, Show a, Ord a, MultiplicativeGroup a,
+            PrimMonad m) =>
+           (a -> Prob m a)
+        -> (a -> Prob m a)
+        -> Transition String a m a
+mhStep' qProposal piPrior = mkTransition smodel transition msgf where
+  smodel xim = do 
+    xCand <- qProposal xim  -- ^ sample from the proposal distribution
+    alpha <- metropolis' qProposal piPrior xCand xim -- ^ evaluate acceptance probability with Metropolis rule
+    u <- uniform
+    pure (xCand, alpha, u)
+  transition xim (xCand, alpha, u) = (s', s') where s' = if u < alpha then xCand else xim
+  msgf s _ = show s
+
+metropolis' :: (Monad m, Ord b, MultiplicativeGroup b) =>
+               (t -> m b)
+            -> (t -> m b)
+            -> t
+            -> t
+            -> m b
+metropolis' qProposal piPrior xCand xim = do
+  qxim <- qProposal xCand
+  pic <- piPrior xCand
+  qcand <- qProposal xim
+  pixim <- piPrior xim
+  return $ min one (qxim * pic / (qcand * pixim))    
+  
 -- | Metropolis rule
 metropolis :: (Monad m, Ord b, MultiplicativeGroup b) =>
               (t -> Prob m b) -- ^ Proposal distribution
