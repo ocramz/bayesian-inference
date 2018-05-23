@@ -58,7 +58,13 @@ metropolis' qProposal piPrior xCand xim = do
   pixim <- piPrior xim
   return $ min one (qxim * pic / (qcand * pixim))
 
-  
+-- | ", in applicative form
+metropolisA'
+  :: (Applicative f, Ord b, MultiplicativeGroup b) =>
+     (t -> f b) -> (t -> f b) -> t -> t -> f b  
+metropolisA' qProposal piPrior xCand xim =
+  (\qxim pic qcand pixim -> min one (qxim * pic / (qcand * pixim))) <$> qProposal xCand <*> piPrior xCand <*> qProposal xim <*> piPrior xim
+
 
 
 
