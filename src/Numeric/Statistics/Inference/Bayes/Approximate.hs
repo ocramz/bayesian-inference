@@ -85,8 +85,17 @@ metropolis qCond piPrior g xCand xim = do
   return $ min one $ qxim * pic / (qcand * pixim)
 
 
-
-
+-- | Metropolis acceptance function in the case of a symmetric proposal
+metropolisSymmProposal :: (Monad m, Ord b, MultiplicativeGroup b) =>
+                          (t -> Prob m b)
+                       -> Gen (PrimState m)
+                       -> t
+                       -> t
+                       -> m b
+metropolisSymmProposal piPrior g xCand xim = do 
+  pic <- sample (piPrior xCand) g
+  pixim <- sample (piPrior xim) g
+  return $ min one $ pic / pixim
 
 
 
