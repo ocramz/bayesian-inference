@@ -1,7 +1,7 @@
 name:                bayesian-inference
 version:             0.1.0.0
--- synopsis:
--- description:
+synopsis:            Bayesian inference in Haskell
+description:         Bayesian inference in Haskell
 homepage:            https://github.com/ocramz/bayesian-inference
 license:             BSD3
 license-file:        LICENSE
@@ -19,20 +19,36 @@ library
   ghc-options:         -Wall
   hs-source-dirs:      src
   exposed-modules:     Numeric.Statistics.Inference.Bayes
+                       Numeric.Statistics.Inference.Bayes.Approximate
+                       Numeric.Statistics.Utils
+                       Numeric.Math
+  other-modules:       System.Random.MWC.Probability.Conditional
   build-depends:       base >= 4.7 && < 5
+                     , exceptions
+                     , ghc-prim
+                     , logging-effect
+                     , mtl
                      , mwc-probability
-                     , mwc-probability-transition >= 0.3.0.3
+                     , mwc-probability-transition
+                     , numhask >= 0.2
+                     , primitive
+                     , transformers
                      , vector
+                     -- DEBUG
+                     , hspec
+                     , QuickCheck
 
 test-suite spec
   default-language:    Haskell2010
   ghc-options:         -Wall
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
-  main-is:             Spec.hs
+  main-is:             LibSpec.hs
   build-depends:       base
                      , bayesian-inference
+                     , exceptions
                      , hspec
+                     , numhask
                      , QuickCheck
 
 source-repository head
