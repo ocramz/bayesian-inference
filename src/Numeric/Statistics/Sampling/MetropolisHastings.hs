@@ -21,14 +21,14 @@ testMH :: Int
        -> Int
        -> Double
        -> Gen RealWorld
-       -> IO ([Double], Double, Double)
+       -> IO (Double, Double)
 testMH n nBurn rhoTrue g = do
   x12s <- sample (createCorrelatedData' 1 1 rhoTrue n) g
-  let qProposal rhoi = uniformR (rhoi - 0.07, rhoi + 0.07)
+  let qProposal rhoi = uniformR (rhoi - 0.02, rhoi + 0.02)
       piPost = postLogProb x12s
       logh _ = pure ()
   xdats <- drop nBurn <$> mh' logh uniform qProposal piPost n g
-  return (xdats, mean xdats, variance xdats)
+  return (mean xdats, variance xdats)
 
 
 mean :: (MultiplicativeGroup a, Additive a, Foldable t, FromInteger a) =>
