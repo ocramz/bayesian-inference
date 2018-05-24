@@ -17,17 +17,19 @@ import Prelude hiding (Num(..), fromIntegral, (/), (*), pi, (**), (^^), exp, rec
 
 
 
-testMH :: Int
-       -> Int
-       -> Double
-       -> Gen RealWorld
-       -> IO (Double, Double)
+-- testMH :: Int
+--        -> Int
+--        -> Double
+--        -> Gen RealWorld
+--        -> IO (Double, Double)
 testMH n nBurn rhoTrue g = do
   x12s <- sample (createCorrelatedData' 1 1 rhoTrue n) g
-  let qProposal rhoi = uniformR (rhoi - 0.02, rhoi + 0.02)
+  -- let qProposal rhoi = uniformR (rhoi - 0.02, rhoi + 0.02)
+  let qProposal rhoi = log <$> uniformR (rhoi - 0.02, rhoi + 0.02)  
       piPost = postLogProb x12s
       logh _ = pure ()
-  xdats <- drop nBurn <$> mh' logh uniform qProposal piPost n g
+  -- xdats <- drop nBurn <$> mh' logh uniform qProposal piPost n g
+  xdats <- drop nBurn <$> mh' logh uniform qProposal piPost n g  
   return (mean xdats, variance xdats)
 
 
@@ -36,17 +38,17 @@ testMH n nBurn rhoTrue g = do
 
 -- * The Mighty Metropolis-Hastings
 
-mh' :: (Variate a, Show a, Ord a, MultiplicativeGroup a, PrimMonad m) =>
-       L.Handler m String
-    -> Prob m a
-    -> (a -> Prob m a)
-    -> (a -> Prob m a)
-    -> Int
-    -> Gen (PrimState m)
-    -> m [a]
+-- mh' :: (Variate a, Show a, Ord a, MultiplicativeGroup a, PrimMonad m) =>
+--        L.Handler m String
+--     -> Prob m a
+--     -> (a -> Prob m a)
+--     -> (a -> Prob m a)
+--     -> Int
+--     -> Gen (PrimState m)
+--     -> m [a]
 mh' lh qPrior qProposal piPost n g = do
   x0 <- sample qPrior g
-  evalTransition lh (mhStep' qProposal piPost) n x0 g
+  evalTransition lh (mhStepLog' qProposal piPost) n x0 g
   
 
 -- | Metropolis-Hastings step in terms of 'Transition'
@@ -79,8 +81,47 @@ metropolis' qProposal piPrior xCand xim = f <$>
                                           piPrior xCand <*>
                                           qProposal xim <*>
                                           piPrior xim
-  where
+  where    
     f qxim pic qcand pixim = min one (qxim * pic / (qcand * pixim))
+
+
+
+
+
+
+
+-- | Metropolis-Hastings step in terms of 'Transition' , log-scale
+mhStepLog' :: (Variate a, Show a, Ord a, ExpField a,
+            PrimMonad m) =>
+           (a -> Prob m a)
+        -> (a -> Prob m a)
+        -> Transition String a m a
+mhStepLog' qProposal piPost = mkTransition smodel transition msgf where
+  smodel xim = do 
+    xCand <- log <$> qProposal xim  -- sample from the proposal distribution
+    alpha <- metropolis' qProposal piPost xCand xim -- evaluate acceptance probability with Metropolis rule
+    u <- log <$> uniform
+    pure (xCand, alpha, u)
+  transition xim (xCand, alpha, u) = (s', s')
+    where
+      s' = if u < alpha then xCand else xim
+  msgf s _ = show s    
+
+
+-- | Metropolis rule , in applicative form , log-scale 
+metropolisLog' :: (Applicative f, Ord b, ExpField b) =>
+                  (t -> f b)
+               -> (t -> f b)
+               -> t
+               -> t
+               -> f b  
+metropolisLog' qProposal piPrior xCand xim = f <$>
+                                          qProposal xCand <*>
+                                          piPrior xCand <*>
+                                          qProposal xim <*>
+                                          piPrior xim
+  where
+    f qxim pic qcand pixim = min zero (log qxim + log pic - log qcand - log pixim)  -- NB: log-domain
 
 
 
