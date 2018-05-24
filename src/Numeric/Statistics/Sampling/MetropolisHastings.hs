@@ -45,25 +45,21 @@ mhStep' qProposal piPrior = mkTransition smodel transition msgf where
   transition xim (xCand, alpha, u) = (s', s') where s' = if u < alpha then xCand else xim
   msgf s _ = show s
 
-metropolis' :: (Monad m, Ord b, MultiplicativeGroup b) =>
-               (t -> m b)
-            -> (t -> m b)
-            -> t
-            -> t
-            -> m b
-metropolis' qProposal piPrior xCand xim = do
-  qxim <- qProposal xCand
-  pic <- piPrior xCand
-  qcand <- qProposal xim
-  pixim <- piPrior xim
-  return $ min one (qxim * pic / (qcand * pixim))
 
--- | ", in applicative form
-metropolisA'
-  :: (Applicative f, Ord b, MultiplicativeGroup b) =>
-     (t -> f b) -> (t -> f b) -> t -> t -> f b  
-metropolisA' qProposal piPrior xCand xim =
-  (\qxim pic qcand pixim -> min one (qxim * pic / (qcand * pixim))) <$> qProposal xCand <*> piPrior xCand <*> qProposal xim <*> piPrior xim
+-- | Metropolis rule , in applicative form
+metropolis' :: (Applicative f, Ord b, MultiplicativeGroup b) =>
+                (t -> f b)
+             -> (t -> f b)
+             -> t
+             -> t
+             -> f b  
+metropolis' qProposal piPrior xCand xim = f <$>
+                                          qProposal xCand <*>
+                                          piPrior xCand <*>
+                                          qProposal xim <*>
+                                          piPrior xim
+  where
+    f qxim pic qcand pixim = min one (qxim * pic / (qcand * pixim))
 
 
 
