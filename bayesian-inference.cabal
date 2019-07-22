@@ -28,10 +28,11 @@ library
                      , exceptions
                      , ghc-prim
                      , logging-effect
+                     , massiv
                      , mtl
                      , mwc-probability
                      , mwc-probability-transition
-                     , numhask >= 0.2
+                     -- , numhask >= 0.2
                      , primitive
                      , transformers
                      , vector

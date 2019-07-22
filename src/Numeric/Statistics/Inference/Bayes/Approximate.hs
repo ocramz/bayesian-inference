@@ -25,8 +25,8 @@ import System.Random.MWC.Probability.Transition (Transition(..), mkTransition, r
 import Numeric.Statistics.Utils
 import Numeric.Math
 
-import NumHask.Algebra
-import Prelude hiding (Num(..), fromIntegral, (/), (*), pi, (**), (^^), exp, recip, sum, product, sqrt)
+-- import NumHask.Algebra
+-- import Prelude hiding (Num(..), fromIntegral, (/), (*), pi, (**), (^^), exp, recip, sum, product, sqrt)
 
 
 
@@ -81,15 +81,15 @@ generativeModel = do
   x <- normal thetaMuStar thetaVar
   return (thetaMuStar, x)
   
-withinBall :: (Ord a, AdditiveGroup a, Signed a) => a -> a -> a -> Bool
+-- withinBall :: (Ord a, AdditiveGroup a, Signed a) => a -> a -> a -> Bool
 withinBall eps x0 x = abs (x - x0) <= eps
 
   
-abcRejection :: (AdditiveGroup b, MultiplicativeGroup b, FromInteger b) =>
-                Double
-             -> Int
-             -> Gen RealWorld
-             -> IO (Double, b)
+-- abcRejection :: (AdditiveGroup b, MultiplicativeGroup b, FromInteger b) =>
+--                 Double
+--              -> Int
+--              -> Gen RealWorld
+--              -> IO (Double, b)
 abcRejection eps n g = do
   x0s <- x0data n g
   xs <- samples n generativeModel g 
@@ -98,7 +98,7 @@ abcRejection eps n g = do
     xs' = filter (\(x0, (_, x)) -> withinBall eps x0 x) xtot
     thetas = map (\(_, (theta, _)) -> theta) xs'
     nf = length thetas
-    rejectionRate = one - (fromIntegral nf / fromIntegral n)
+    rejectionRate = 1 - (fromIntegral nf / fromIntegral n)
   return (mean thetas, rejectionRate)
 
 
@@ -166,16 +166,16 @@ References:
 
 
 
-abcMcmcStep ::
-  (Show a, Ord a, FromInteger a, MultiplicativeGroup a, Signed a, AdditiveGroup a) =>
-     (Double -> Prob IO Double)
-  -> (Double -> Prob IO Double)
-  -> (Double -> Prob IO a)
-  -> [a]
-  -> Int
-  -> a
-  -> Gen RealWorld
-  -> StateT Double IO Double
+-- abcMcmcStep ::
+--   (Show a, Ord a, FromInteger a, MultiplicativeGroup a, Signed a, AdditiveGroup a) =>
+--      (Double -> Prob IO Double)
+--   -> (Double -> Prob IO Double)
+--   -> (Double -> Prob IO a)
+--   -> [a]
+--   -> Int
+--   -> a
+--   -> Gen RealWorld
+--   -> StateT Double IO Double
 abcMcmcStep prior proposal simulator x0s n eps g = do
   thetai <- get
   -- 1. sample theta* from the proposal distribution
@@ -201,19 +201,19 @@ abcMcmcStep prior proposal simulator x0s n eps g = do
         return thetai
          
 
-acceptProb :: (Monad m, Ord b, MultiplicativeGroup b) =>
-              (t -> Prob m b)   -- ^ Prior
-           -> (t -> Prob m b)   -- ^ Proposal
-           -> t                 -- ^ Candidate parameter value
-           -> t                 -- ^ Current parameter value
-           -> Gen (PrimState m) -- ^ Generator
-           -> m b
+-- acceptProb :: (Monad m, Ord b, MultiplicativeGroup b) =>
+--               (t -> Prob m b)   -- ^ Prior
+--            -> (t -> Prob m b)   -- ^ Proposal
+--            -> t                 -- ^ Candidate parameter value
+--            -> t                 -- ^ Current parameter value
+--            -> Gen (PrimState m) -- ^ Generator
+--            -> m b
 acceptProb p q thetaStar theta gen = do
   a <- sample (p thetaStar) gen
   b <- sample (q thetaStar) gen
   c <- sample (p theta) gen
   d <- sample (q theta) gen
-  let alpha = min one (a*b/(c*d))
+  let alpha = min 1 (a*b/(c*d))
   return alpha
 
 
@@ -233,12 +233,12 @@ acceptProb p q thetaStar theta gen = do
 
 
 -- | Metropolis correction, symmetric proposal distribution
-acceptProbSymm :: (Monad m, Ord b, MultiplicativeGroup b) =>
-                  (t -> Prob m b)   -- ^ Prior
-               -> t                 -- ^ Candidate parameter value (theta*)
-               -> t                 -- ^ Current parameter value
-               -> Gen (PrimState m)
-               -> m b
+-- acceptProbSymm :: (Monad m, Ord b, MultiplicativeGroup b) =>
+--                   (t -> Prob m b)   -- ^ Prior
+--                -> t                 -- ^ Candidate parameter value (theta*)
+--                -> t                 -- ^ Current parameter value
+--                -> Gen (PrimState m)
+--                -> m b
 acceptProbSymm p thetaStar theta gen = do
   a <- sample (p thetaStar) gen
   b <- sample (p theta) gen
@@ -267,8 +267,8 @@ data PDF a =
     | Gamma a a
   deriving (Eq, Show)
 
-density :: (ExpField a, TrigField a, Signed a, Fractional a, Enum a) =>
-     a -> PDF a -> a -> a
+-- density :: (ExpField a, TrigField a, Signed a, Fractional a, Enum a) =>
+--      a -> PDF a -> a -> a
 density nmax dens x = case dens of
   Normal mu sig -> normalPdf mu sig x
   Uniform a b -> uniformPdf a b x
@@ -296,9 +296,9 @@ instance PrimMonad m => CDSampleable m (NormalPdf Double) where
   type CDSample (NormalPdf Double) = Double
   cdSample (NormalPdf mu sig) = normal mu sig
 
-instance (TrigField a, ExpField a) => CDPDF (NormalPdf a) where
-  type CDValue (NormalPdf a) = a
-  cdPdf (NormalPdf mu sig) = normalPdf mu sig
+-- instance (TrigField a, ExpField a) => CDPDF (NormalPdf a) where
+--   type CDValue (NormalPdf a) = a
+--   cdPdf (NormalPdf mu sig) = normalPdf mu sig
 
 --
 

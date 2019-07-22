@@ -1,27 +1,29 @@
 module Numeric.Statistics.Sampling.MetropolisHastings where
 
-import Control.Monad (when, unless, replicateM)
+-- import Control.Monad (when, unless, replicateM)
+import Control.Monad (replicateM)
 
-import GHC.Prim
+-- import GHC.Prim
 import Control.Monad.Primitive (PrimMonad(..), PrimState(..))
 
 import Control.Monad.Trans.State
 import Control.Monad.Trans.Class (MonadTrans(..), lift)
 
-import System.Random.MWC.Probability (Prob(..), Gen, GenIO, samples, create, normal, standardNormal, uniform, uniformR, bernoulli, Variate)
+-- import System.Random.MWC.Probability (Prob(..), Gen, GenIO, samples, create, normal, standardNormal, uniform, uniformR, bernoulli, Variate)
+import System.Random.MWC.Probability (Prob(..), Gen, GenIO, samples, standardNormal, uniform, uniformR, Variate)
 import System.Random.MWC.Probability.Transition -- (Transition(..), mkTransition, runTransition)
 import qualified Control.Monad.Log as L
 
-import NumHask.Algebra
-import Prelude hiding (Num(..), fromIntegral, (/), (*), pi, (**), (^^), exp, recip, sum, product, sqrt, log)
+-- import NumHask.Algebra
+-- import Prelude hiding (Num(..), fromIntegral, (/), (*), pi, (**), (^^), exp, recip, sum, product, sqrt, log)
 
 
 
--- testMH :: Int
---        -> Int
---        -> Double
---        -> Gen RealWorld
---        -> IO (Double, Double)
+testMH :: Int
+       -> Int
+       -> Double
+       -> GenIO
+       -> IO (Double, Double)
 testMH n nBurn rhoTrue g = do
   x12s <- sample (createCorrelatedData' 1 1 rhoTrue n) g
   -- let qProposal rhoi = uniformR (rhoi - 0.02, rhoi + 0.02)
@@ -38,22 +40,21 @@ testMH n nBurn rhoTrue g = do
 
 -- * The Mighty Metropolis-Hastings
 
--- mh' :: (Variate a, Show a, Ord a, MultiplicativeGroup a, PrimMonad m) =>
---        L.Handler m String
---     -> Prob m a
---     -> (a -> Prob m a)
---     -> (a -> Prob m a)
---     -> Int
---     -> Gen (PrimState m)
---     -> m [a]
+mh' :: (Variate a, Show a, Ord a, Floating a, PrimMonad m) =>
+       L.Handler m String
+    -> Prob m a
+    -> (a -> Prob m a)
+    -> (a -> Prob m a)
+    -> Int
+    -> Gen (PrimState m)
+    -> m [a]
 mh' lh qPrior qProposal piPost n g = do
   x0 <- sample qPrior g
   evalTransition lh (mhStepLog' qProposal piPost) n x0 g
   
 
 -- | Metropolis-Hastings step in terms of 'Transition'
-mhStep' :: (Variate a, Show a, Ord a, MultiplicativeGroup a,
-            PrimMonad m) =>
+mhStep' :: (Variate a, Show a, Ord a, Fractional a, PrimMonad m) =>
            (a -> Prob m a)
         -> (a -> Prob m a)
         -> Transition String a m a
@@ -70,19 +71,19 @@ mhStep' qProposal piPost = mkTransition smodel transition msgf where
 
 
 -- | Metropolis rule , in applicative form
-metropolis' :: (Applicative f, Ord b, MultiplicativeGroup b) =>
-                (t -> f b)
-             -> (t -> f b)
-             -> t
-             -> t
-             -> f b  
+metropolis' :: (Applicative f, Ord b, Fractional b) =>
+               (t -> f b)
+            -> (t -> f b)
+            -> t
+            -> t
+            -> f b  
 metropolis' qProposal piPrior xCand xim = f <$>
                                           qProposal xCand <*>
                                           piPrior xCand <*>
                                           qProposal xim <*>
                                           piPrior xim
   where    
-    f qxim pic qcand pixim = min one (qxim * pic / (qcand * pixim))
+    f qxim pic qcand pixim = min 1 (qxim * pic / (qcand * pixim))
 
 
 
@@ -91,11 +92,11 @@ metropolis' qProposal piPrior xCand xim = f <$>
 
 
 -- | Metropolis-Hastings step in terms of 'Transition' , log-scale
-mhStepLog' :: (Variate a, Show a, Ord a, ExpField a,
-            PrimMonad m) =>
-           (a -> Prob m a)
-        -> (a -> Prob m a)
-        -> Transition String a m a
+mhStepLog' :: (Variate a, Show a, Ord a, Floating a,
+               PrimMonad m) =>
+              (a -> Prob m a)
+           -> (a -> Prob m a)
+           -> Transition String a m a
 mhStepLog' qProposal piPost = mkTransition smodel transition msgf where
   smodel xim = do 
     xCand <- log <$> qProposal xim  -- sample from the proposal distribution
@@ -109,7 +110,7 @@ mhStepLog' qProposal piPost = mkTransition smodel transition msgf where
 
 
 -- | Metropolis rule , in applicative form , log-scale 
-metropolisLog' :: (Applicative f, Ord b, ExpField b) =>
+metropolisLog' :: (Applicative f, Ord b, Floating b) =>
                   (t -> f b)
                -> (t -> f b)
                -> t
@@ -121,7 +122,7 @@ metropolisLog' qProposal piPrior xCand xim = f <$>
                                           qProposal xim <*>
                                           piPrior xim
   where
-    f qxim pic qcand pixim = min zero (log qxim + log pic - log qcand - log pixim)  -- NB: log-domain
+    f qxim pic qcand pixim = min 0 (log qxim + log pic - log qcand - log pixim)  -- NB: log-domain
 
 
 
@@ -129,7 +130,7 @@ metropolisLog' qProposal piPrior xCand xim = f <$>
 
 
 
-mh :: (Ord s, MultiplicativeGroup s, PrimMonad m, Variate s) =>
+mh :: (Ord s, Fractional s, PrimMonad m, Variate s) =>
       Prob m s
    -> (s -> Prob m s) -- ^ Proposal distribution
    -> (s -> Prob m s)
@@ -140,7 +141,7 @@ mh qPrior qProposal piPost n g = do
   x0 <- sample qPrior g
   evalStateT (replicateM n $ mhStep qProposal piPost g) x0
 
-mhStep :: (Ord s, MultiplicativeGroup s, PrimMonad m, Variate s) =>
+mhStep :: (Ord s, Fractional s, Variate s, PrimMonad m) =>
           (s -> Prob m s)
        -> (s -> Prob m s)
        -> Gen (PrimState m)
@@ -158,7 +159,7 @@ mhStep qProposal piPost g = do
    
   
 -- | Metropolis rule
-metropolis :: (Monad m, Ord b, MultiplicativeGroup b) =>
+metropolis :: (Monad m, Ord b, Fractional b) =>
               (t -> Prob m b) -- ^ Proposal distribution
            -> (t -> Prob m b)  
            -> Gen (PrimState m)
@@ -170,11 +171,11 @@ metropolis qProposal piPost g xCand xim = do
   pic <- sample (piPost xCand) g
   qcand <- sample (qProposal xim) g
   pixim <- sample (piPost xim) g
-  return $ min one (qxim * pic / (qcand * pixim))
+  return $ min 1 (qxim * pic / (qcand * pixim))
 
 
 -- | Metropolis acceptance function in the case of a symmetric proposal
-metropolisSymmProposal :: (Monad m, Ord b, MultiplicativeGroup b) =>
+metropolisSymmProposal :: (Monad m, Ord b, Fractional b) =>
                           (t -> Prob m b)
                        -> Gen (PrimState m)
                        -> t
@@ -183,7 +184,7 @@ metropolisSymmProposal :: (Monad m, Ord b, MultiplicativeGroup b) =>
 metropolisSymmProposal piPost g xCand xim = do 
   pic <- sample (piPost xCand) g
   pixim <- sample (piPost xim) g
-  return $ min one (pic / pixim)
+  return $ min 1 (pic / pixim)
 
 
 
@@ -228,11 +229,11 @@ createCorrelatedData' sxx syy rho n = do
 --  
 -- [sxx rho] = [a   ] [a  b] = L L'
 -- [rho syy]   [b  c] [   c]
-covarCholesky :: (ExpField c) => c -> c -> c -> (c, c, c)
+covarCholesky :: (Floating c) => c -> c -> c -> (c, c, c)
 covarCholesky sxx syy rho = (a, b, c) where
   a = sqrt sxx
   b = rho / a
-  c = sqrt (syy - rho ** (one + one) / sxx)
+  c = sqrt (syy - rho ** 2 / sxx)
 
 -- | Posterior probability
 --
@@ -243,9 +244,9 @@ postProb rho n g = do
   let lh = product $ zipWith (lhSingle rho) x1s x2s
   pure $ rhoPrior rho * lh
 
-lhSingle :: (TrigField a, ExpField a) => a -> a -> a -> a
-lhSingle rho xi yi = one / (two * pi * sqrt s) * exp (negate (sqr xi - two * rho * xi * yi + sqr yi)/(two * s)) where
-  s = one - sqr rho
+lhSingle :: (Floating a) => a -> a -> a -> a
+lhSingle rho xi yi = 1 / (2 * pi * sqrt s) * exp (negate (sqr xi - 2 * rho * xi * yi + sqr yi)/(2 * s)) where
+  s = 1 - sqr rho
 
 -- | Posterior Log-probability
 -- postLogProb
@@ -255,7 +256,7 @@ lhSingle rho xi yi = one / (two * pi * sqrt s) * exp (negate (sqr xi - two * rho
 --   let llh = sum $ zipWith (\xi yi -> logLhSingle rho xi yi) x1s x2s
 --   pure $ log (rhoPrior rho) + llh
 
-postLogProb :: (Applicative f, ExpField a, TrigField a) =>
+postLogProb :: (Applicative f, Floating a) =>
                ([a], [a])  -- ^ observed data
             -> a           -- ^ candidate parameter value
             -> f a
@@ -264,13 +265,13 @@ postLogProb (x1s, x2s) rho = do
   pure $ log (rhoPrior rho) + llh
 
 
-logLhSingle :: (ExpField a, TrigField a) => a -> a -> a -> a
-logLhSingle rho xi yi = log (one / (two * pi * sqrt s)) + (negate (sqr xi - two * rho * xi * yi + sqr yi)/(two * s)) where
-  s = one - sqr rho
+logLhSingle :: Floating a => a -> a -> a -> a
+logLhSingle rho xi yi = log (1 / (2 * pi * sqrt s)) + (negate (sqr xi - 2 * rho * xi * yi + sqr yi)/(2 * s)) where
+  s = 1 - sqr rho
 
 -- | Jeffreys' prior on correlation parameter 'rho' of two standard Normal rv's (non-informative prior for covariance matrices)
-rhoPrior :: ExpField a => a -> a
-rhoPrior rho = one / (one - sqr rho) ** (three / two)
+rhoPrior :: Floating a => a -> a
+rhoPrior rho = 1 / (1 - sqr rho) ** (3 / 2)
 
 
 
@@ -279,12 +280,12 @@ rhoPrior rho = one / (one - sqr rho) ** (three / two)
 -- * Helpers
 
 
-mean :: (MultiplicativeGroup a, Additive a, Foldable t, FromInteger a) =>
+mean :: (Foldable t, Fractional a) =>
         t a
      -> a
 mean xs = sum xs / fromIntegral (length xs)
 
-variance :: (AdditiveGroup a, MultiplicativeGroup a, FromInteger a) =>
+variance :: (Fractional a) =>
             [a]
          -> a
 variance xs = mean (zipWith (*) xc xc) where
@@ -292,10 +293,7 @@ variance xs = mean (zipWith (*) xc xc) where
 
 
 
--- | ffs, NumHask
-sqr :: Multiplicative a => a -> a
+sqr :: Num a => a -> a
 sqr x = x * x
 
-two, three :: (Additive a, MultiplicativeUnital a) => a
-two = one + one
-three = two + one
+
