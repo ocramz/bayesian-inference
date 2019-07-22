@@ -13,8 +13,6 @@ import Numeric.Statistics.Utils
 import Numeric.Statistics.Inference.Bayes.Approximate
 import Numeric.Math
 
-import NumHask.Algebra
-import Prelude hiding (Num(..), fromIntegral, (/), (*), pi, (**), (^^), exp, recip, sum, product)
 
 main :: IO ()
 main = hspec spec
@@ -26,15 +24,11 @@ spec =
       (laguerreE 2 2 :: Double) `shouldBeAbout` laguerre 2 2
     it "laguerre 3 2 == laguerreE 3 2 : evaluates Laguerre polynomial L_3 in 2" $ 
       (laguerreE 3 2 :: Double) `shouldBeAbout` laguerre 3 2  
-    -- it "works" $ do
-    --   True `shouldBe` True
-    -- prop "ourAdd is commutative" $ \x y ->
-    --   ourAdd x y `shouldBe` ourAdd y x
 
 
 -- | Logistic map. Parameter bounds `0 < r < 4`, `0 < x0 < 1`, chaotic behaviour for r > 3.57 
-logisticMap :: (Fractional a, Ord a, AdditiveGroup a, Multiplicative a) =>
-     Int -> a -> a -> Either String [a]
+-- logisticMap :: (Fractional a, Ord a, AdditiveGroup a, Multiplicative a) =>
+--      Int -> a -> a -> Either String [a]
 logisticMap n r x0
   | r <= 0 || r >= 4 = Left "0 < r < 4"
   | x0 <= 0 || x0 >= 1 = Left "0 < x0 < 1"
@@ -47,7 +41,7 @@ logisticMap n r x0
 
 -- | Hspec + NumHask
 
-shouldBeAbout :: (Show a, Epsilon a) => a -> a -> IO ()
+shouldBeAbout :: (Show a, Epsilon a, Ord a) => a -> a -> IO ()
 shouldBeAbout actual expected = 
   unless (actual `aboutEqual` expected) $
     throwM $ NotAboutEqual ("expected: " ++ show expected ++ "\n but got: " ++ show actual)
@@ -56,3 +50,15 @@ shouldBeAbout actual expected =
 data FPE = NotAboutEqual String deriving (Eq, Show, Typeable)
 instance Exception FPE
 
+
+class Num a => Epsilon a where
+  epsilon :: a
+
+aboutEqual :: (Epsilon a, Ord a) => a -> a -> Bool
+aboutEqual x y = abs (x - y) <= epsilon
+
+instance Epsilon Double where
+  epsilon = 1e-12
+
+instance Epsilon Float where
+  epsilon = 1e-6

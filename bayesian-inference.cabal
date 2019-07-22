@@ -32,7 +32,6 @@ library
                      , mtl
                      , mwc-probability
                      , mwc-probability-transition
-                     -- , numhask >= 0.2
                      , primitive
                      , transformers
                      , vector
@@ -50,7 +49,6 @@ test-suite spec
                      , bayesian-inference
                      , exceptions
                      , hspec
-                     , numhask
                      , QuickCheck
 
 source-repository head
