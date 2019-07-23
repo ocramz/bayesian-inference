@@ -25,6 +25,7 @@ library
                        Numeric.Math
   other-modules:       System.Random.MWC.Probability.Conditional
   build-depends:       base >= 4.7 && < 5
+                     , algebraic-graphs
                      , exceptions
                      , ghc-prim
                      , logging-effect

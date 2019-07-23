@@ -15,6 +15,7 @@ addons:
 env:
 - ARGS="--resolver lts"  
 - ARGS="--resolver lts-11.5"
+- ARGS="--resolver lts-12.14"
 
 
 before_install:
