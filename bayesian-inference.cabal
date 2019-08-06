@@ -20,6 +20,7 @@ library
   hs-source-dirs:      src
   exposed-modules:     Numeric.Statistics.Inference.Bayes
                        Numeric.Statistics.Inference.Bayes.Approximate
+                       Numeric.Statistics.Inference.Bayes.Exact
                        Numeric.Statistics.Utils
                        Numeric.Statistics.Sampling.MetropolisHastings
                        Numeric.Math
