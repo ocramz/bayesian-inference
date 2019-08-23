@@ -6,7 +6,7 @@ module Numeric.Statistics.Inference.Bayes.Exact.VariableElimination where
 -- algebraic-graphs
 import Algebra.Graph (Graph(..), vertex, edge, overlay, connect)
 import qualified Algebra.Graph.Class as GC (Graph(..))
-import Algebra.Graph.ToGraph (ToGraph(..))
+import qualified Algebra.Graph.ToGraph as TG (ToGraph(..))
 
 -- bimap
 import qualified Data.Bimap as BM
@@ -21,15 +21,41 @@ import Data.Massiv.Array (Index, Ix1(..), D, (..:), ifoldlWithin', foldlWithin',
 import Prelude hiding (lookup)
 
 
+student :: Graph Char
+student =
+  connect c d `overlay`
+  connect d g `overlay`
+  connect g h `overlay`
+  connect g l `overlay`
+  connect l j `overlay`
+  connect j h `overlay`
+  connect s j `overlay`
+  connect i g `overlay`
+  connect i s
+  where
+    c = vertex 'c'
+    d = vertex 'd'
+    g = vertex 'g'
+    h = vertex 'h'
+    i = vertex 'i'
+    j = vertex 'j'
+    l = vertex 'l'
+    s = vertex 's'
+
+
 -- a factor is defined as a set of variables
 newtype Factor a = Factor { scope :: S.Set a } deriving (Show)
 
-moralize :: (ToGraph t, Ord (ToVertex t)) =>
-            ToVertex t -> t -> Factor (ToVertex t)
-moralize v g = Factor $ preSet v g `S.union` S.singleton v
+factorList :: (TG.ToGraph g, Ord (TG.ToVertex g)) =>
+              g -> [Factor (TG.ToVertex g)]
+factorList g = (`moralFactor` g) `map` TG.vertexList g
+
+moralFactor :: (TG.ToGraph g, Ord (TG.ToVertex g)) =>
+               TG.ToVertex g -> g -> Factor (TG.ToVertex g)
+moralFactor v g = Factor $ TG.preSet v g `S.union` S.singleton v
 
 
--- mapping from rv names to array indices
+-- bidirectional mapping from rv names to array indices
 newtype IxMap ix = IxMap {
   unIxMap :: BM.Bimap ix Dim
   } deriving (Eq, Show)
