@@ -28,6 +28,7 @@ packages:
 # (e.g., acme-missiles-0.3)
 extra-deps: 
 - mwc-probability-transition-0.3.0.3
+# - permutation-0.5.0.5@sha256:4982a4c9e2f82ec7925a098abca629d0af80e7465e4527d5fe9f4fded4cb2a53
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

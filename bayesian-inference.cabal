@@ -24,6 +24,7 @@ library
                        Numeric.Statistics.Utils
                        Numeric.Statistics.Sampling.MetropolisHastings
                        Numeric.Math
+                       Data.Permutation
   other-modules:       System.Random.MWC.Probability.Conditional
   build-depends:       base >= 4.7 && < 5
                      , algebraic-graphs
@@ -36,6 +37,7 @@ library
                      , mtl
                      , mwc-probability
                      , mwc-probability-transition
+                     -- , permutation
                      , primitive
                      , transformers
                      , vector
