@@ -21,6 +21,7 @@ library
   exposed-modules:     Numeric.Statistics.Inference.Bayes
                        Numeric.Statistics.Inference.Bayes.Approximate
                        Numeric.Statistics.Inference.Bayes.Exact
+                       Numeric.Statistics.Inference.Bayes.Exact.VariableElimination
                        Numeric.Statistics.Utils
                        Numeric.Statistics.Sampling.MetropolisHastings
                        Numeric.Math
@@ -57,6 +58,27 @@ test-suite spec
                      , hspec
                      , QuickCheck
 
+test-suite doctest
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             DocTest.hs
+  other-modules:       Bayes.Exact.VariableElimination
+  build-depends:       base
+                     , bayesian-inference
+                     , doctest
+                     , exceptions
+                     
+test-suite property
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Property.hs
+  build-depends:       base
+                     , bayesian-inference
+                     
 source-repository head
   type:     git
   location: https://github.com/ocramz/bayesian-inference

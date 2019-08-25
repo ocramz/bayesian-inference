@@ -86,7 +86,7 @@ elims :: (Monad m, TG.ToGraph g, Foldable t, Ord (TG.ToVertex g)) =>
       -> m (IM.IntMap (Factor (TG.ToVertex g)))
 elims g vs = runLex $ do
   im0 <- factorIM g
-  foldlM (flip spe') im0 vs
+  foldlM (flip spe) im0 vs
 
 factorIM :: (Monad m, TG.ToGraph g, Ord (TG.ToVertex g)) =>
             g
@@ -101,15 +101,6 @@ spe z pphi = insert tau pphi'' where
   pphi' = factorsContaining z pphi
   pphi'' = pphi `IM.difference` pphi'
   tau = eliminate z pphi
-
-spe' :: (Monad m, Ord a) => a -> IM.IntMap (Factor a) -> Lex m (IM.IntMap (Factor a))
-spe' z pphi = do
-  pphi2s <- fromList pphi''
-  insert tau pphi2s
-  where
-    pphi' = factorsContaining z pphi
-    pphi'' = forgetIndices pphi `S.difference` forgetIndices pphi'
-    tau = eliminate z pphi  
 
 forgetIndices :: Ord a => IM.IntMap a -> S.Set a
 forgetIndices = S.fromList . map snd . IM.toList 
