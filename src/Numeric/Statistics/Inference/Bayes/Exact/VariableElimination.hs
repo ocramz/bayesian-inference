@@ -51,20 +51,56 @@ student =
     l = vertex 'l'
     s = vertex 's'
 
--- hasInScope v f = not $ null $ scope f `S.intersection` S.singleton v
 
-groupFactors :: Ord a => [Factor a] -> [[Factor a]]
-groupFactors = groupBy (\f1 f2 -> length (scope f1 `S.intersection` scope f2) > 0)
+data SumProduct a =
+    SumOver a (Factor a)
+  | Product (S.Set (Factor a))
 
-scopeSize :: Factor a -> Int
-scopeSize = length . scope
+
+
+
+
+-- | Sum-product elimination
+--
+-- NB: a Set of Factors is inadequate because there might be intermediate factors with the same scope as the initial set, but a single one would be retained (i.e. the notion of equality used in the Eq instance is intensional)
+spe :: Ord a => a -> S.Set (Factor a) -> S.Set (Factor a)
+spe z pphi = S.singleton tau `S.union` pphi'' where
+  pphi' = factorsContaining z pphi
+  pphi'' = pphi `S.difference` pphi'
+  tau = eliminate z pphi'
+
+
+eliminate :: (Foldable t, Ord a) => a -> t (Factor a) -> Factor a
+eliminate v fs = sumOver v $ intermediateFactor fs
+
+-- | Intermediate factor (formally the set union of the given factor scopes)
+-- called `psi_i` in {Koller Friedman, Algorithm 9.1, p. 298}
+intermediateFactor :: (Foldable t, Ord a) => t (Factor a) -> Factor a
+intermediateFactor fs = foldl insf f0 fs where
+  f0 = Factor S.empty
+  insf acc f = Factor $ scope acc `S.union` scope f
+
+sumOver :: Eq a => a -> Factor a -> Factor a
+sumOver v f = Factor $ S.filter (/= v) $ scope f 
+
+-- | Factors containing a given variable
+factorsContaining :: Ord a => a -> S.Set (Factor a) -> S.Set (Factor a)
+factorsContaining v = S.filter (hasInScope v) 
+
+hasInScope :: Ord a => a -> Factor a -> Bool
+hasInScope v f = not $ null $ scope f `S.intersection` S.singleton v
+
+
 
 -- a factor is defined as a set of variables
-newtype Factor a = Factor { scope :: S.Set a } deriving (Show)
+newtype Factor a = Factor { scope :: S.Set a } deriving (Eq, Ord, Foldable)
+instance Show a => Show (Factor a) where
+  show (Factor fs) = unwords $ ["{"] ++ show `map` S.toList fs ++ ["}"]
 
-factorList :: (TG.ToGraph g, Ord (TG.ToVertex g)) =>
-              g -> [Factor (TG.ToVertex g)]
-factorList g = (`moralFactor` g) `map` TG.vertexList g
+factorSet :: (TG.ToGraph g, Ord (TG.ToVertex g)) =>
+             g
+          -> S.Set (Factor (TG.ToVertex g))
+factorSet g = (`moralFactor` g) `S.map` TG.vertexSet g
 
 moralFactor :: (TG.ToGraph g, Ord (TG.ToVertex g)) =>
                TG.ToVertex g -> g -> Factor (TG.ToVertex g)
@@ -73,19 +109,19 @@ moralFactor v g = Factor $ TG.preSet v g `S.union` S.singleton v
 
 
 
--- bidirectional mapping from rv names to array indices
-newtype IxMap ix = IxMap {
-  unIxMap :: BM.Bimap ix Dim
-  } deriving (Eq, Show)
+-- -- bidirectional mapping from rv names to array indices
+-- newtype IxMap ix = IxMap {
+--   unIxMap :: BM.Bimap ix Dim
+--   } deriving (Eq, Show)
 
-singleton :: ix -> Dim -> IxMap ix
-singleton k ix = IxMap $ BM.singleton k ix
+-- singleton :: ix -> Dim -> IxMap ix
+-- singleton k ix = IxMap $ BM.singleton k ix
 
-insert :: Ord ix => ix -> Dim -> IxMap ix -> IxMap ix
-insert k ix bm = IxMap $ BM.insert k ix $ unIxMap bm
+-- insert :: Ord ix => ix -> Dim -> IxMap ix -> IxMap ix
+-- insert k ix bm = IxMap $ BM.insert k ix $ unIxMap bm
 
-lookup :: (Ord ix, MonadThrow m) => ix -> IxMap ix -> m Dim
-lookup k bm = BM.lookup k $ unIxMap bm
+-- lookup :: (Ord ix, MonadThrow m) => ix -> IxMap ix -> m Dim
+-- lookup k bm = BM.lookup k $ unIxMap bm
 
-lookupR :: (Ord ix, MonadThrow m) => Dim -> IxMap ix -> m ix
-lookupR j bm = BM.lookupR j $ unIxMap bm
+-- lookupR :: (Ord ix, MonadThrow m) => Dim -> IxMap ix -> m ix
+-- lookupR j bm = BM.lookupR j $ unIxMap bm
