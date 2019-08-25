@@ -28,6 +28,7 @@ import Control.Monad.State (MonadState(..))
 -- permutation
 -- import qualified Data.Permute as P (permute, next, elems)
 -- transformers
+import Control.Monad.State (State(..), evalState)
 import Control.Monad.Trans.State (StateT(..), runStateT, evalStateT)
 
 import Prelude hiding (lookup)
@@ -62,45 +63,48 @@ student =
 --   | Product (S.Set (Factor a))
 
 type VarId = Int
-newtype Lex m a = Lex { unLex :: StateT VarId m a } deriving (Functor, Applicative, Monad, MonadState VarId)
-runLex :: Monad m => Lex m a -> m a
-runLex lx = evalStateT (unLex lx) 0
+-- newtype Lex m a = Lex { unLex :: StateT VarId m a } deriving (Functor, Applicative, Monad, MonadState VarId)
+-- runLex :: Monad m => Lex m a -> m a
+-- runLex lx = evalStateT (unLex lx) 0
+newtype Lex a = Lex { unLex :: State VarId a } deriving (Functor, Applicative, Monad, MonadState VarId)
+runLex :: Lex a -> a
+runLex lx = evalState (unLex lx) 0
 
-insert :: Monad m => a -> IM.IntMap a -> Lex m (IM.IntMap a)
+insert :: a -> IM.IntMap a -> Lex (IM.IntMap a)
 insert x mx = do
   k <- get
   let mx' = IM.insert k x mx
   put $ succ k
   pure mx'
 
-fromList :: (Foldable t, Monad m) => t a -> Lex m (IM.IntMap a)
+fromList :: Foldable t => t a -> Lex (IM.IntMap a)
 fromList xs = foldlM (flip insert) IM.empty xs
 
 -- | sequential sum-product elimination of graph factors
 -- 
 -- >>> elims student "cdihg"
 -- fromList [(5,{ 'j' 'l' 's' }),(12,{ 'j' 'l' 's' })]
-elims :: (Monad m, TG.ToGraph g, Foldable t, Ord (TG.ToVertex g)) =>
+elims :: (TG.ToGraph g, Foldable t, Ord (TG.ToVertex g)) =>
          g
       -> t (TG.ToVertex g)
-      -> m (IM.IntMap (Factor (TG.ToVertex g)))
+      -> IM.IntMap (Factor (TG.ToVertex g))
 elims g vs = runLex $ do
   im0 <- factorIM g
   foldlM (flip spe) im0 vs
 
-factorIM :: (Monad m, TG.ToGraph g, Ord (TG.ToVertex g)) =>
+factorIM :: (TG.ToGraph g, Ord (TG.ToVertex g)) =>
             g
-         -> Lex m (IM.IntMap (Factor (TG.ToVertex g)))
+         -> Lex (IM.IntMap (Factor (TG.ToVertex g)))
 factorIM g = do
   im <- fromList $ TG.vertexList g
   pure $ IM.map (`moralFactor` g) im
 
 -- | Sum-product elimination
-spe :: (Monad m, Ord a) => a -> IM.IntMap (Factor a) -> Lex m (IM.IntMap (Factor a))
+spe :: (Ord a) => a -> IM.IntMap (Factor a) -> Lex (IM.IntMap (Factor a))
 spe z pphi = insert tau pphi'' where
   pphi' = factorsContaining z pphi
   pphi'' = pphi `IM.difference` pphi'
-  tau = eliminate z pphi
+  tau = eliminate z pphi'
 
 forgetIndices :: Ord a => IM.IntMap a -> S.Set a
 forgetIndices = S.fromList . map snd . IM.toList 
