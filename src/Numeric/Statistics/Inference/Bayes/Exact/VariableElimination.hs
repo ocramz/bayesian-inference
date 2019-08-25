@@ -29,11 +29,13 @@ import Control.Monad.State (MonadState(..))
 -- import qualified Data.Permute as P (permute, next, elems)
 -- transformers
 import Control.Monad.State (State(..), evalState)
-import Control.Monad.Trans.State (StateT(..), runStateT, evalStateT)
+-- import Control.Monad.Trans.State (StateT(..), runStateT, evalStateT)
+-- vector
+import qualified Data.Vector as V
 
 import Prelude hiding (lookup)
 
-import Data.Permutation (Permutation, permutation, permutations, swaps)
+import Data.Permutation (Permutation, permutation, getPermutation, permutations)
 
 
 student :: Graph Char
@@ -56,6 +58,13 @@ student =
     j = vertex 'j'
     l = vertex 'l'
     s = vertex 's'
+
+{- |
+
+λ> permutations <$> TG.topSort student
+
+Just ["iscdgljh","sicdgljh","csidgljh","dscigljh","gscdiljh","lscdgijh","jscdglih","hscdglji","icsdgljh","idcsgljh","igcdsljh","ilcdgsjh","ijcdglsh","ihcdgljs","isdcgljh","isgdcljh","isldgcjh","isjdglch","ishdgljc","iscgdljh","isclgdjh","iscjgldh","ischgljd","iscdlgjh","iscdjlgh","iscdhljg","iscdgjlh","iscdghjl","iscdglhj"]
+-}
 
 
 -- data SumProduct a =
@@ -101,9 +110,9 @@ factorIM g = do
 
 -- | Sum-product elimination
 spe :: (Ord a) => a -> IM.IntMap (Factor a) -> Lex (IM.IntMap (Factor a))
-spe z pphi = insert tau pphi'' where
+spe z pphi = insert tau pphiC where
   pphi' = factorsContaining z pphi
-  pphi'' = pphi `IM.difference` pphi'
+  pphiC = pphi `IM.difference` pphi'
   tau = eliminate z pphi'
 
 forgetIndices :: Ord a => IM.IntMap a -> S.Set a
@@ -123,10 +132,11 @@ intermediateFactor fs = Factor $ foldl insf f0 fs where
   f0 = S.empty
   insf acc f = acc `S.union` scope f
 
+-- | "Marginalize" a factor over a variable ; in this case this just means: filter it out
 sumOver :: Eq a => a -> Factor a -> Factor a
 sumOver v f = Factor $ S.filter (/= v) $ scope f 
 
-
+-- | Does the factor have a given variable in scope?
 hasInScope :: Ord a => a -> Factor a -> Bool
 hasInScope v f = not $ null $ scope f `S.intersection` S.singleton v
 
@@ -139,10 +149,9 @@ newtype Factor a = Factor { scope :: S.Set a } deriving (Eq, Ord, Foldable)
 instance Show a => Show (Factor a) where
   show (Factor fs) = unwords $ ["{"] ++ show `map` S.toList fs ++ ["}"]
 
--- factorSet :: (TG.ToGraph g, Ord (TG.ToVertex g)) =>
---              g
---           -> S.Set (Factor (TG.ToVertex g))
--- factorSet g = (`moralFactor` g) `S.map` TG.vertexSet g
+-- | Induced width
+width :: (Foldable t, Functor t) => t (Factor a) -> Int
+width = maximum . fmap length
 
 
 
