@@ -20,8 +20,8 @@ import qualified Data.Set as S
 -- exceptions
 import Control.Monad.Catch (MonadThrow(..))
 -- massiv
-import qualified Data.Massiv.Array as A (Array, all, Comp(..), makeArray, Construct(..), Sz(..))
-import Data.Massiv.Array (Index, Ix1(..), D, (..:), ifoldlWithin', foldlWithin', Lower, Dim(..), Source)
+-- import qualified Data.Massiv.Array as A (Array, all, Comp(..), makeArray, Construct(..), Sz(..))
+-- import Data.Massiv.Array (Index, Ix1(..), D, (..:), ifoldlWithin', foldlWithin', Lower, Dim(..), Source)
 -- permutation
 -- import qualified Data.Permute as P (permute, next, elems)
 
