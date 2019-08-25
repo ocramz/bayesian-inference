@@ -46,6 +46,16 @@ library
                      , hspec
                      , QuickCheck
 
+executable graph-export
+  default-language:    Haskell2010
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  build-depends:       base
+                     , bayesian-inference
+                     , algebraic-graphs
+                     , text
+
 test-suite spec
   default-language:    Haskell2010
   ghc-options:         -Wall
@@ -70,14 +80,14 @@ test-suite doctest
                      , doctest
                      , exceptions
                      
-test-suite property
-  default-language:    Haskell2010
-  ghc-options:         -Wall
-  type:                exitcode-stdio-1.0
-  hs-source-dirs:      test
-  main-is:             Property.hs
-  build-depends:       base
-                     , bayesian-inference
+-- test-suite property
+--   default-language:    Haskell2010
+--   ghc-options:         -Wall
+--   type:                exitcode-stdio-1.0
+--   hs-source-dirs:      test
+--   main-is:             Property.hs
+--   build-depends:       base
+--                      , bayesian-inference
                      
 source-repository head
   type:     git

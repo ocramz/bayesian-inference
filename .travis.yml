@@ -15,7 +15,6 @@ addons:
 env:
 - ARGS="--resolver lts"
 - ARGS="--resolver nightly"
-## - ARGS="--resolver lts-11.5"
 - ARGS="--resolver lts-12.14"
 - ARGS="--resolver nightly-2019-08-04"
 

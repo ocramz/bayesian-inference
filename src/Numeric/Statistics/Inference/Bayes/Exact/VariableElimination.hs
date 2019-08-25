@@ -77,7 +77,7 @@ fromList :: (Foldable t, Monad m) => t a -> Lex m (IM.IntMap a)
 fromList xs = foldlM (flip insert) IM.empty xs
 
 -- | sequential sum-product elimination of graph factors
---
+-- 
 -- >>> elims student "cdihg"
 -- fromList [(5,{ 'j' 'l' 's' }),(12,{ 'j' 'l' 's' })]
 elims :: (Monad m, TG.ToGraph g, Foldable t, Ord (TG.ToVertex g)) =>

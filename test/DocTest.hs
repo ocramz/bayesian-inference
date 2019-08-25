@@ -2,8 +2,8 @@ module Main where
 
 import Test.DocTest (doctest)
 
-
+main :: IO ()
 main = doctest [
-  "test/Bayes/Exact/VariableElimination.hs"
+  "src/Numeric/Statistics/Inference/Bayes/Exact/VariableElimination.hs"
 
         ]
