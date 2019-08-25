@@ -1,8 +1,8 @@
 # resolver: lts-11.5
 # resolver: nightly-2018-05-23
-# resolver: lts-12.14
+resolver: lts-12.14
 # resolver: lts-14.0
-resolver: nightly-2019-08-04
+# resolver: nightly-2019-08-04
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
