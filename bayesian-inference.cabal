@@ -38,8 +38,8 @@ library
                      , mtl
                      , mwc-probability
                      , mwc-probability-transition
-                     -- , permutation
                      , primitive
+                     , text
                      , transformers
                      , vector
                      -- DEBUG
@@ -74,7 +74,7 @@ test-suite doctest
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             DocTest.hs
-  other-modules:       Bayes.Exact.VariableElimination
+  -- other-modules:       Data.Permutation
   build-depends:       base
                      , bayesian-inference
                      , doctest
