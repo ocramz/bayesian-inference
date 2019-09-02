@@ -1,7 +1,7 @@
 {-# language OverloadedStrings #-}
 module Main where
 
-import Numeric.Statistics.Inference.Bayes.Exact.VariableElimination (student)
+import Data.Graph.Examples (student)
 
 import Algebra.Graph.Export (Doc, literal, render)
 import Algebra.Graph.Export.Dot (Style(..), defaultStyle, export, Attribute(..))
