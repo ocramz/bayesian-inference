@@ -94,7 +94,7 @@ fromList xs = foldlM (flip insertFactor) IM.empty xs
 -- | sequential sum-product elimination of graph factors, given a vertex elimination order
 -- 
 -- >>> runLex $ elims student "cdihg"
--- (fromList [(4,{ 'j' 'l' 's' }),(5,{ 'j' 'l' 's' })],Temp {varId = 5, maxFactorSize = 3})
+-- (fromList [(4,{ 'j' , 'l' , 's' }),(5,{ 'j' , 'l' , 's' })],Temp {varId = 5, maxFactorSize = 3})
 elims :: (TG.ToGraph g, Foldable t, Ord (TG.ToVertex g)) =>
          g
       -> t (TG.ToVertex g)
