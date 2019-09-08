@@ -19,7 +19,7 @@ import qualified Data.Bimap as BM
 -- containers
 import qualified Data.IntMap as IM
 import qualified Data.Map as M (Map, empty, fromList, lookup, insert, toList)
-import qualified Data.Set as S (Set, empty, singleton, union, intersection, filter, toList, member, insert, lookupGE, lookupLE)
+import qualified Data.Set as S (Set, empty, singleton, union, intersection, filter, toList, member, insert, lookupGE, lookupLE, fromList)
 import Data.Set ((\\))
 -- exceptions
 import Control.Monad.Catch (MonadThrow(..))
@@ -151,33 +151,33 @@ moralFactor v g = Factor $ TG.preSet v g `S.union` S.singleton v
 
 
 
+condition :: (Ord x, Foldable t, Eq e) =>
+             t (x, e) -> Factor x -> Factor (Clamp x e)
+condition cvs = Factor . S.fromList . map f . M.toList . condition_ cvs
+  where
+    f (x, je) = x := je
 
-condition :: (Foldable t, Ord x) => t (x, e) -> Factor x -> M.Map x (Maybe e)
-condition cvs f = foldl insf M.empty $ scope f
+condition_ :: (Foldable t, Ord x) => t (x, e) -> Factor x -> M.Map x (Maybe e)
+condition_ cvs f = foldl insf M.empty $ scope f
   where
     cs = clampVars cvs
-    insf acc x = M.insert x (isClamped x cs) acc
+    insf acc x = M.insert x (M.lookup x cs) acc
 
-clampVars :: (Foldable t, Ord x) => t (x, e) -> Clamp x e
-clampVars = foldl (flip clamp) (Clamp M.empty)
+clampVars :: (Foldable t, Ord x) => t (x, e) -> M.Map x e
+clampVars = foldl (flip clamp) M.empty
   where
-    clamp (x, e) (Clamp mc) = Clamp $ M.insert x e mc
+    clamp (x, e) = M.insert x e 
 
-newtype Clamp x e = Clamp { clampedVars :: M.Map x e } deriving (Show)
-
-isClamped :: Ord x => x -> Clamp x e -> Maybe e
-isClamped x (Clamp mc) = M.lookup x mc
-
--- -- | Notation for a potentially clamped (i.e. conditioned) variable
--- data Clamp x e = x := Maybe e
--- instance (Show x, Show e) => Show (Clamp x e) where
---   show = \case
---     x := Just je -> unwords ["(", show x, ":=", show je, ")"]
---     x := Nothing -> unwords [show x]
--- instance (Eq x, Eq e) => Eq (Clamp x e) where
---   (x1 := v1) == (x2 := v2) = x1 == x2 && v1 == v2
--- instance (Ord x, Eq e) => Ord (Clamp x e) where
---   (x1 := _) <= (x2 := _) = x1 <= x2
+-- | Notation for a potentially clamped (i.e. conditioned) variable
+data Clamp x e = x := Maybe e
+instance (Show x, Show e) => Show (Clamp x e) where
+  show = \case
+    x := Just je -> unwords ["(", show x, ":=", show je, ")"]
+    x := Nothing -> show x
+instance (Eq x, Eq e) => Eq (Clamp x e) where
+  (x1 := v1) == (x2 := v2) = x1 == x2 && v1 == v2
+instance (Ord x, Eq e) => Ord (Clamp x e) where
+  (x1 := _) <= (x2 := _) = x1 <= x2
 
 
 -- | a factor is defined here as a set of variables
