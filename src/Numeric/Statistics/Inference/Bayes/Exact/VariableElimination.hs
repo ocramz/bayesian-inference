@@ -14,11 +14,11 @@ import Data.Foldable (foldlM, maximumBy, minimumBy)
 import Algebra.Graph (Graph(..), vertex, edge, overlay, connect)
 import qualified Algebra.Graph.Class as GC (Graph(..))
 import qualified Algebra.Graph.ToGraph as TG (ToGraph(..))
-
 -- bimap
 import qualified Data.Bimap as BM
 -- containers
 import qualified Data.IntMap as IM
+import qualified Data.Map as M (Map, empty, fromList, lookup, insert, toList)
 import qualified Data.Set as S (Set, empty, singleton, union, intersection, filter, toList, member, insert, lookupGE, lookupLE)
 import Data.Set ((\\))
 -- exceptions
@@ -152,37 +152,32 @@ moralFactor v g = Factor $ TG.preSet v g `S.union` S.singleton v
 
 
 
--- condition :: (Foldable t, Ord x, Eq e) =>
---              t (x, e) -> Factor x -> Factor (Clamp x e)
--- condition cs f = Factor $ foldl insf S.empty cs
---   where
---     insf acc (x, e)
---       | x `S.member` scope f = S.insert (clamp (x, e)) acc
---       | otherwise = S.insert (free x) acc
+condition :: (Foldable t, Ord x) => t (x, e) -> Factor x -> M.Map x (Maybe e)
+condition cvs f = foldl insf M.empty $ scope f
+  where
+    cs = clampVars cvs
+    insf acc x = M.insert x (isClamped x cs) acc
 
--- condition cs f = foldl insf S.empty $ scope f
---   where
---     insf acc x
---       | isClamped x cs = S.insert (clamp (x, e)) acc
+clampVars :: (Foldable t, Ord x) => t (x, e) -> Clamp x e
+clampVars = foldl (flip clamp) (Clamp M.empty)
+  where
+    clamp (x, e) (Clamp mc) = Clamp $ M.insert x e mc
 
--- isClamped x cs | (x := Just{}) `S.member` cs 
+newtype Clamp x e = Clamp { clampedVars :: M.Map x e } deriving (Show)
 
-free :: x -> Clamp x e
-free x = x := Nothing
+isClamped :: Ord x => x -> Clamp x e -> Maybe e
+isClamped x (Clamp mc) = M.lookup x mc
 
-clamp :: (x, e) -> Clamp x e
-clamp (x, e) = x := Just e
-
--- | Notation for a potentially clamped (i.e. conditioned) variable
-data Clamp x e = x := Maybe e
-instance (Show x, Show e) => Show (Clamp x e) where
-  show = \case
-    x := Just je -> unwords ["(", show x, ":=", show je, ")"]
-    x := Nothing -> unwords [show x, "free"]
-instance (Eq x, Eq e) => Eq (Clamp x e) where
-  (x1 := v1) == (x2 := v2) = x1 == x2 && v1 == v2
-instance (Ord x, Eq e) => Ord (Clamp x e) where
-  (x1 := _) <= (x2 := _) = x1 <= x2
+-- -- | Notation for a potentially clamped (i.e. conditioned) variable
+-- data Clamp x e = x := Maybe e
+-- instance (Show x, Show e) => Show (Clamp x e) where
+--   show = \case
+--     x := Just je -> unwords ["(", show x, ":=", show je, ")"]
+--     x := Nothing -> unwords [show x]
+-- instance (Eq x, Eq e) => Eq (Clamp x e) where
+--   (x1 := v1) == (x2 := v2) = x1 == x2 && v1 == v2
+-- instance (Ord x, Eq e) => Ord (Clamp x e) where
+--   (x1 := _) <= (x2 := _) = x1 <= x2
 
 
 -- | a factor is defined here as a set of variables
