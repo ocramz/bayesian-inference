@@ -36,6 +36,8 @@ library
                      , ghc-prim
                      , logging-effect
                      , massiv
+                     , microlens
+                     , microlens-mtl
                      , mtl
                      , mwc-probability
                      , mwc-probability-transition

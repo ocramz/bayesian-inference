@@ -19,20 +19,26 @@ import qualified Data.Bimap as BM
 -- containers
 import qualified Data.IntMap as IM
 import qualified Data.Map as M (Map, empty, fromList, lookup, insert, toList)
-import qualified Data.Set as S (Set, empty, singleton, union, intersection, filter, toList, member, insert, lookupGE, lookupLE, fromList)
+import qualified Data.Set as S (Set, empty, singleton, union, intersection, filter, toList, member, insert, fromList, map)
 import Data.Set ((\\))
 -- exceptions
 import Control.Monad.Catch (MonadThrow(..))
 -- massiv
 -- import qualified Data.Massiv.Array as A (Array, all, Comp(..), makeArray, Construct(..), Sz(..))
 -- import Data.Massiv.Array (Index, Ix1(..), D, (..:), ifoldlWithin', foldlWithin', Lower, Dim(..), Source)
+-- microlens
+import Lens.Micro (Lens(..), Lens', lens, (^.), (.~), (%~), Getting)
+-- microlens-mtl
+import Lens.Micro.Mtl (view, (%=))
 -- mtl
 import Control.Monad.State (MonadState(..), gets)
+import Control.Monad.Reader (MonadReader(..), asks)
 -- permutation
 -- import qualified Data.Permute as P (permute, next, elems)
 -- transformers
 import Control.Monad.State (State(..), runState, evalState, execState)
 import Control.Monad.Trans.State (StateT(..), runStateT, evalStateT)
+import Control.Monad.Trans.Reader (ReaderT(..), runReaderT)
 -- vector
 import qualified Data.Vector as V
 
@@ -59,6 +65,20 @@ verticesWithout g vs = S.toList $ TG.vertexSet g \\ vs
 -- data SumProduct a =
 --     SumOver a (Factor a)
 --   | Product (S.Set (Factor a))
+
+{-|
+
+λ> :t view hasFactorSize
+view hasFactorSize :: (MonadReader s m, HasFactorSize s) => m Int
+
+λ> :t (hasFactorSize %=)
+(hasFactorSize %=)
+  :: (MonadState s m, HasFactorSize s) => (Int -> Int) -> m ()
+
+class HasFactorSize x where
+  hasFactorSize :: Lens' x Int
+-}
+
 
 type VarId = Int
 data Temp = Temp { varId :: VarId, maxFactorSize :: Int } deriving (Eq, Show)
@@ -151,23 +171,13 @@ moralFactor v g = Factor $ TG.preSet v g `S.union` S.singleton v
 
 
 
-condition :: (Ord x, Foldable t, Eq e) =>
-             t (x, e) -> Factor x -> Factor (Clamp x e)
-condition cvs = Factor . S.fromList . map f . M.toList . condition_ cvs
-  where
-    f (x, je) = x := je
 
-condition_ :: (Foldable t, Ord x) => t (x, e) -> Factor x -> M.Map x (Maybe e)
-condition_ cvs f = foldl insf M.empty $ scope f
+condition :: (Ord k, Eq e) => [(k, e)] -> Factor k -> Factor (Clamp k e)
+condition cvs fac = Factor $ S.map clamp $ scope fac
   where
-    cs = clampVars cvs
-    insf acc x = M.insert x (M.lookup x cs) acc
-
-clampVars :: (Foldable t, Ord x) => t (x, e) -> M.Map x e
-clampVars = foldl (flip clamp) M.empty
-  where
-    clamp (x, e) = M.insert x e 
-
+    cvsm = M.fromList cvs
+    clamp x = x := M.lookup x cvsm
+    
 -- | Notation for a potentially clamped (i.e. conditioned) variable
 data Clamp x e = x := Maybe e
 instance (Show x, Show e) => Show (Clamp x e) where
