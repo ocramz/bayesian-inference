@@ -1,9 +1,11 @@
 {-# language FlexibleContexts #-}
 {-# language GeneralizedNewtypeDeriving #-}
+{-# language DeriveFoldable #-}
+{-# language LambdaCase #-}
 module Numeric.Statistics.Inference.Bayes.Exact.VariableElimination where
 
 -- import GHC.TypeNats 
-import Data.List (groupBy, sort, sortBy)
+import Data.List (groupBy, sort, sortBy, intercalate, intersperse)
 import Data.Ord (comparing)
 import Data.Foldable (foldlM, maximumBy, minimumBy)
 -- import Data.Monoid (Sum(..), Product(..))
@@ -17,7 +19,7 @@ import qualified Algebra.Graph.ToGraph as TG (ToGraph(..))
 import qualified Data.Bimap as BM
 -- containers
 import qualified Data.IntMap as IM
-import qualified Data.Set as S (Set, empty, singleton, union, intersection, filter, toList)
+import qualified Data.Set as S (Set, empty, singleton, union, intersection, filter, toList, member, insert, lookupGE, lookupLE)
 import Data.Set ((\\))
 -- exceptions
 import Control.Monad.Catch (MonadThrow(..))
@@ -37,28 +39,16 @@ import qualified Data.Vector as V
 import Data.Graph.Examples (student)
 import Data.Permutation (Permutation, permutation, getPermutation, permutations)
 
-
 import Prelude hiding (lookup)
 
-minimumMaxDegOrdering
-  :: (TG.ToGraph g, Ord (TG.ToVertex g)) =>
-     g -> TG.ToVertex g -> Permutation (TG.ToVertex g)
+minimumMaxDegOrdering :: (TG.ToGraph g, Ord (TG.ToVertex g)) =>
+                         g -> TG.ToVertex g -> Permutation (TG.ToVertex g)
 minimumMaxDegOrdering g v =
-  minimumBy (compareOrderings g) $ permutations vs where
+  minimumBy compareOrderings $ permutations vs where
     vs = verticesWithout g $ S.singleton v
-
-compareOrderings :: (TG.ToGraph g, Ord (TG.ToVertex g)) =>
-                    g
-                 -> Permutation (TG.ToVertex g)
-                 -> Permutation (TG.ToVertex g)
-                 -> Ordering
-compareOrderings g vp1 vp2 =
-  compare (maxFS g $ getPermutation vp1) (maxFS g $ getPermutation vp2)
-
-maxFS :: (TG.ToGraph g, Foldable t, Ord (TG.ToVertex g)) =>
-         g -> t (TG.ToVertex g) -> Int
-maxFS g vs = maxFactorSize $ snd $ runLex (elims g vs)
-
+    compareOrderings vp1 vp2 =
+      compare (maxFS $ getPermutation vp1) (maxFS $ getPermutation vp2)
+    maxFS vss = maxFactorSize $ snd $ runLex (elims g vss)
 
 -- | All vertices in the graph but a given subset
 verticesWithout :: (TG.ToGraph g, Ord (TG.ToVertex g)) =>
@@ -111,7 +101,8 @@ elims :: (TG.ToGraph g, Foldable t, Ord (TG.ToVertex g)) =>
       -> Lex (IM.IntMap (Factor (TG.ToVertex g)))
 elims g vs = do
   let im0 = factorIM g
-  foldlM (flip sumProductElim) im0 vs
+  foldlM (flip sumProductVE) im0 vs
+
 
 factorIM :: (TG.ToGraph g, Ord (TG.ToVertex g)) =>
             g
@@ -119,16 +110,14 @@ factorIM :: (TG.ToGraph g, Ord (TG.ToVertex g)) =>
 factorIM g = IM.map (`moralFactor` g) im where
   im = IM.fromList $ zip [0..] (TG.vertexList g) 
 
+
 -- | Sum-product elimination
-sumProductElim :: (Ord a) => a -> IM.IntMap (Factor a) -> Lex (IM.IntMap (Factor a))
-sumProductElim z pphi = insertFactor tau pphiC
+sumProductVE :: (Ord a) => a -> IM.IntMap (Factor a) -> Lex (IM.IntMap (Factor a))
+sumProductVE z pphi = insertFactor tau pphiC
   where
     pphi' = factorsContaining z pphi
     pphiC = pphi `IM.difference` pphi'
     tau = eliminate z pphi'
-
--- forgetIndices :: Ord a => IM.IntMap a -> S.Set a
--- forgetIndices = S.fromList . map snd . IM.toList 
 
 -- | Factors containing a given variable
 factorsContaining :: Ord a => a -> IM.IntMap (Factor a) -> IM.IntMap (Factor a)
@@ -150,20 +139,56 @@ sumOver v f = Factor $ S.filter (/= v) $ scope f
 
 -- | Does the factor have a given variable in scope?
 hasInScope :: Ord a => a -> Factor a -> Bool
-hasInScope v f = not $ null $ scope f `S.intersection` S.singleton v
+hasInScope v f = v `S.member` scope f 
 
-factors :: (TG.ToGraph t, Ord (TG.ToVertex t)) =>
-           t -> [Factor (TG.ToVertex t)]
-factors g = (`moralFactor` g) `map` TG.vertexList g
+factorList :: (TG.ToGraph g, Ord (TG.ToVertex g)) =>
+              g -> [Factor (TG.ToVertex g)]
+factorList g = (`moralFactor` g) `map` TG.vertexList g
 
 moralFactor :: (TG.ToGraph g, Ord (TG.ToVertex g)) =>
                TG.ToVertex g -> g -> Factor (TG.ToVertex g)
 moralFactor v g = Factor $ TG.preSet v g `S.union` S.singleton v
 
--- a factor is defined as a set of variables
+
+
+
+-- condition :: (Foldable t, Ord x, Eq e) =>
+--              t (x, e) -> Factor x -> Factor (Clamp x e)
+-- condition cs f = Factor $ foldl insf S.empty cs
+--   where
+--     insf acc (x, e)
+--       | x `S.member` scope f = S.insert (clamp (x, e)) acc
+--       | otherwise = S.insert (free x) acc
+
+-- condition cs f = foldl insf S.empty $ scope f
+--   where
+--     insf acc x
+--       | isClamped x cs = S.insert (clamp (x, e)) acc
+
+-- isClamped x cs | (x := Just{}) `S.member` cs 
+
+free :: x -> Clamp x e
+free x = x := Nothing
+
+clamp :: (x, e) -> Clamp x e
+clamp (x, e) = x := Just e
+
+-- | Notation for a potentially clamped (i.e. conditioned) variable
+data Clamp x e = x := Maybe e
+instance (Show x, Show e) => Show (Clamp x e) where
+  show = \case
+    x := Just je -> unwords ["(", show x, ":=", show je, ")"]
+    x := Nothing -> unwords [show x, "free"]
+instance (Eq x, Eq e) => Eq (Clamp x e) where
+  (x1 := v1) == (x2 := v2) = x1 == x2 && v1 == v2
+instance (Ord x, Eq e) => Ord (Clamp x e) where
+  (x1 := _) <= (x2 := _) = x1 <= x2
+
+
+-- | a factor is defined here as a set of variables
 newtype Factor a = Factor { scope :: S.Set a } deriving (Eq, Ord, Foldable)
 instance Show a => Show (Factor a) where
-  show (Factor fs) = unwords $ ["{"] ++ show `map` S.toList fs ++ ["}"]
+  show (Factor fs) = unwords $ ["{"] ++ intersperse "," (show `map` S.toList fs) ++ ["}"]
 
 -- | Induced width
 width :: (Foldable t, Functor t) => t (Factor a) -> Int
