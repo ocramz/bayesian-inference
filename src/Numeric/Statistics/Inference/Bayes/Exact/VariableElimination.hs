@@ -7,7 +7,7 @@ module Numeric.Statistics.Inference.Bayes.Exact.VariableElimination where
 -- import GHC.TypeNats 
 import Data.List (groupBy, sort, sortBy, intercalate, intersperse)
 import Data.Ord (comparing)
-import Data.Foldable (foldlM, maximumBy, minimumBy)
+import Data.Foldable (foldlM, maximumBy, minimumBy, fold)
 -- import Data.Monoid (Sum(..), Product(..))
 
 -- algebraic-graphs
@@ -149,9 +149,10 @@ eliminate v fs = sumOver v $ intermediateFactor fs
 -- | Intermediate factor (formally the set union of the given factor scopes)
 -- called `psi_i` in {Koller Friedman, Algorithm 9.1, p. 298}
 intermediateFactor :: (Foldable t, Ord a) => t (Factor a) -> Factor a
-intermediateFactor fs = Factor $ foldl insf f0 fs where
-  f0 = S.empty
-  insf acc f = acc `S.union` scope f
+intermediateFactor = fold
+-- intermediateFactor fs = Factor $ foldl insf f0 fs where
+--   f0 = S.empty
+--   insf acc f = acc `S.union` scope f
 
 -- | "Marginalize" a factor over a variable ; in this case this just means: filter it out
 sumOver :: Eq a => a -> Factor a -> Factor a
@@ -194,6 +195,12 @@ instance (Ord x, Eq e) => Ord (Clamp x e) where
 newtype Factor a = Factor { scope :: S.Set a } deriving (Eq, Ord, Foldable)
 instance Show a => Show (Factor a) where
   show (Factor fs) = unwords $ ["{"] ++ intersperse "," (show `map` S.toList fs) ++ ["}"]
+-- | Semigroup instance based on set union  
+instance (Ord a) => Semigroup (Factor a) where
+  (Factor f1) <> (Factor f2) = Factor (f1 `S.union` f2)
+instance (Ord a) => Monoid (Factor a) where
+  mempty = Factor S.empty
+  
 
 -- | Induced width
 width :: (Foldable t, Functor t) => t (Factor a) -> Int
