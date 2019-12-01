@@ -3,6 +3,7 @@
 resolver: lts-12.14
 # resolver: lts-14.0
 # resolver: nightly-2019-08-04
+# resolver: nightly-2019-11-29
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -28,7 +29,9 @@ packages:
 # (e.g., acme-missiles-0.3)
 extra-deps: 
 - mwc-probability-transition-0.3.0.3
-- algebraic-graphs-0.4@sha256:5d163af6f2f8c6729572f5378e1b0037b563c765930a957a135aa9d34e4518c5,9349
+- algebraic-graphs-0.4@sha256:5d163af6f2f8c6729572f5378e1b0037b563c765930a957a135aa9d34e4518c5
+- base-compat-0.10.5@sha256:d49e174ed0daecd059c52d13d4f4de87b5609c81212a22adbb92431f9cd58fff
+
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
