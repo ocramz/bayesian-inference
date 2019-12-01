@@ -143,6 +143,7 @@ sumProductVE z pphi = insertFactor tau pphiC
 factorsContaining :: Ord a => a -> IM.IntMap (Factor a) -> IM.IntMap (Factor a)
 factorsContaining v = IM.filter (hasInScope v)
 
+-- | Eliminate a variable from a scope by summing over it
 eliminate :: (Foldable t, Ord a) => a -> t (Factor a) -> Factor a
 eliminate v fs = sumOver v $ intermediateFactor fs
 
@@ -150,9 +151,7 @@ eliminate v fs = sumOver v $ intermediateFactor fs
 -- called `psi_i` in {Koller Friedman, Algorithm 9.1, p. 298}
 intermediateFactor :: (Foldable t, Ord a) => t (Factor a) -> Factor a
 intermediateFactor = fold
--- intermediateFactor fs = Factor $ foldl insf f0 fs where
---   f0 = S.empty
---   insf acc f = acc `S.union` scope f
+
 
 -- | "Marginalize" a factor over a variable ; in this case this just means: filter it out
 sumOver :: Eq a => a -> Factor a -> Factor a
@@ -173,13 +172,13 @@ moralFactor v g = Factor $ TG.preSet v g `S.union` S.singleton v
 
 
 
-condition :: (Ord k, Eq e) => [(k, e)] -> Factor k -> Factor (Clamp k e)
+condition :: (Ord x, Eq e) => [(x, e)] -> Factor x -> Factor (Clamp x e)
 condition cvs fac = Factor $ S.map clamp $ scope fac
   where
     cvsm = M.fromList cvs
     clamp x = x := M.lookup x cvsm
     
--- | Notation for a potentially clamped (i.e. conditioned) variable
+-- | Notation for a potentially clamped (i.e. evidence) variable
 data Clamp x e = x := Maybe e
 instance (Show x, Show e) => Show (Clamp x e) where
   show = \case

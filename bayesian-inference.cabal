@@ -22,6 +22,7 @@ library
                        Numeric.Statistics.Inference.Bayes.Approximate
                        Numeric.Statistics.Inference.Bayes.Exact
                        Numeric.Statistics.Inference.Bayes.Exact.VariableElimination
+                       Numeric.Statistics.Nonparametric
                        Numeric.Statistics.Utils
                        Numeric.Statistics.Sampling.MetropolisHastings
                        Numeric.Math
