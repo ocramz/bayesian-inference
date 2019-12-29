@@ -3,7 +3,7 @@
 Finite permutations
 -}
 module Data.Permutation (
-  Permutation, permutation, getPermutation, permutations
+  Permutation, permutation, getPermutation, getPermutationList, permutations
   -- * Helper functions
   , swaps, swapsEnum
   ) where
@@ -21,12 +21,16 @@ newtype Permutation a = Permutation {
   _getPermutation :: V.Vector a
                                }
 
+getPermutationList :: Permutation a -> [a]
+getPermutationList = V.toList . getPermutation
+
 getPermutation :: Permutation a -> V.Vector a
 getPermutation = _getPermutation
 
 instance Show a => Show (Permutation a) where
   show (Permutation pv) = show $ V.toList pv
 
+-- | Compute all permutations of the given list
 permutations :: [a] -> [Permutation a]
 permutations xs = permSwap p0 `map` swaps n  where
   p0 = permutation xs

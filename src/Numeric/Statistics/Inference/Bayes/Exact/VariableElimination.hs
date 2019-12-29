@@ -27,9 +27,9 @@ import Control.Monad.Catch (MonadThrow(..))
 -- import qualified Data.Massiv.Array as A (Array, all, Comp(..), makeArray, Construct(..), Sz(..))
 -- import Data.Massiv.Array (Index, Ix1(..), D, (..:), ifoldlWithin', foldlWithin', Lower, Dim(..), Source)
 -- microlens
-import Lens.Micro (Lens(..), Lens', lens, (^.), (.~), (%~), Getting)
+-- import Lens.Micro (Lens(..), Lens', lens, (^.), (.~), (%~), Getting)
 -- microlens-mtl
-import Lens.Micro.Mtl (view, (%=))
+-- import Lens.Micro.Mtl (view, (%=))
 -- mtl
 import Control.Monad.State (MonadState(..), gets)
 import Control.Monad.Reader (MonadReader(..), asks)

@@ -5,28 +5,9 @@ resolver: lts-12.14
 # resolver: nightly-2019-08-04
 # resolver: nightly-2019-11-29
 
-# User packages to be built.
-# Various formats can be used as shown in the example below.
-#
-# packages:
-# - some-directory
-# - https://example.com/foo/bar/baz-0.0.2.tar.gz
-# - location:
-#    git: https://github.com/commercialhaskell/stack.git
-#    commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
-# - location: https://github.com/commercialhaskell/stack/commit/e7b331f14bcffb8367cd58fbfc8b40ec7642100a
-#   extra-dep: true
-#  subdirs:
-#  - auto-update
-#  - wai
-#
-# A package marked 'extra-dep: true' will only be built if demanded by a
-# non-dependency (i.e. a user package), and its test suites and benchmarks
-# will not be run. This is useful for tweaking upstream packages.
 packages:
 - .
-# Dependency packages to be pulled from upstream that are not in the resolver
-# (e.g., acme-missiles-0.3)
+
 extra-deps: 
 - mwc-probability-transition-0.3.0.3
 - algebraic-graphs-0.4@sha256:5d163af6f2f8c6729572f5378e1b0037b563c765930a957a135aa9d34e4518c5
