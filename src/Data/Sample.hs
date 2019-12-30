@@ -4,7 +4,16 @@ module Data.Sample (Sample, empty, cons, fromList
                    , sample2, sample3) where
 
 import Data.Foldable (Foldable(..))
+import Control.Monad.ST (ST, runST)
+-- containers
 import qualified Data.Sequence as S
+-- mwc-probability
+import System.Random.MWC.Probability (Gen(..), GenIO, GenST)
+-- primitive
+import Control.Monad.Primitive (PrimMonad(..))
+-- sampling
+import Numeric.Sampling (presample, presampleIO)
+
 import Prelude hiding (filter)
 
 
@@ -13,7 +22,10 @@ newtype Sample a = Sample {
   getSample_ :: S.Seq a
   } deriving (Eq, Functor, Applicative, Foldable)
 instance Show a => Show (Sample a) where
-  show (Sample xs) = show $ toList xs
+  show (Sample xs) = brackets $ unwords $ map show $ toList xs
+
+brackets :: String -> String
+brackets p = "{" <> p <> "}"
 
 sample2 :: a -> a -> Sample a
 sample2 a b = a `cons` (b `cons` empty)
