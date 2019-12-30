@@ -1,7 +1,8 @@
 {-# language DeriveFunctor, GeneralizedNewtypeDeriving #-}
 module Data.Sample (Sample, empty, cons, fromList
                    , filter
-                   , sample2, sample3) where
+                   , sample2, sample3
+                   , presample) where
 
 import Data.Foldable (Foldable(..))
 import Control.Monad.ST (ST, runST)
@@ -25,6 +26,12 @@ instance Show a => Show (Sample a) where
   show (Sample xs) = "{" <> unwords (map show $ toList xs) <> "}"
 
 -- | Sample with replacement according to a (nonuniform) probability vector
+--
+-- >>> create >>= presample 50 [0.5,0.3,0.2] (fromList ['a','b','c'])
+-- Just "abbaababacbbcabbcabbabababaaaccbbbcaabbcababaababa"
+-- 
+-- >>> create >>= presample 50 [0.6,0.3,0.1] (fromList ['a','b','c'])
+-- Just "abaaaaabacaacabbbabaabababaaabbbabbaabbcaaaaaababa"
 presample :: (PrimMonad f) =>
              Int -- ^ number of desired samples
           -> [Double] -- ^ probability vector (must be same size as sample)
