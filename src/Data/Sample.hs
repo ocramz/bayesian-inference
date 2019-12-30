@@ -8,11 +8,11 @@ import Control.Monad.ST (ST, runST)
 -- containers
 import qualified Data.Sequence as S
 -- mwc-probability
-import System.Random.MWC.Probability (Gen(..), GenIO, GenST)
+import System.Random.MWC.Probability (Gen(..), GenIO, GenST, create, asGenST)
 -- primitive
 import Control.Monad.Primitive (PrimMonad(..))
 -- sampling
-import Numeric.Sampling (presample, presampleIO)
+import qualified Numeric.Sampling as NS (presample, presampleIO)
 
 import Prelude hiding (filter)
 
@@ -22,10 +22,20 @@ newtype Sample a = Sample {
   getSample_ :: S.Seq a
   } deriving (Eq, Functor, Applicative, Foldable)
 instance Show a => Show (Sample a) where
-  show (Sample xs) = brackets $ unwords $ map show $ toList xs
+  show (Sample xs) = "{" <> unwords (map show $ toList xs) <> "}"
 
-brackets :: String -> String
-brackets p = "{" <> p <> "}"
+-- | Sample with replacement according to a (nonuniform) probability vector
+presample :: (PrimMonad f) =>
+             Int -- ^ number of desired samples
+          -> [Double] -- ^ probability vector (must be same size as sample)
+          -> Sample a
+          -> Gen (PrimState f) -- ^ PRNG
+          -> f (Maybe [a]) -- ^ returns Nothing iff probability vector size does not match sample size
+presample n ps sv gen
+  | length sv == length ps = Just <$> NS.presample n ppv gen
+  | otherwise = pure Nothing
+  where
+    ppv = zip ps (toList sv)
 
 sample2 :: a -> a -> Sample a
 sample2 a b = a `cons` (b `cons` empty)
