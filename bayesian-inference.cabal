@@ -44,6 +44,7 @@ library
                      , mwc-probability
                      , mwc-probability-transition
                      , primitive
+                     , sampling
                      , text
                      , transformers
                      , vector
