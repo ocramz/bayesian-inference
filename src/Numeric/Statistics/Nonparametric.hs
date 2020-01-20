@@ -1,87 +1,71 @@
 {-# language DeriveFunctor, DeriveFoldable #-}
-module Numeric.Statistics.Nonparametric where
+module Numeric.Statistics.Nonparametric (crp) where
 
-import Control.Monad (foldM)
+-- import Control.Monad (foldM)
 import Data.Monoid (Sum(..))
 
 -- containers
 import qualified Data.IntMap as IM
 -- mwc-probability
-import Control.Monad (replicateM)
-import System.Random.MWC.Probability (Prob, create, sample, samples, Gen, GenIO, GenST, categorical)
+import System.Random.MWC.Probability (Prob, create, sample, samples, Gen, categorical, multinomial)
 import System.Random.MWC.Probability (gamma, normal)
 -- primitive
-import Control.Monad.Primitive (PrimState(..), PrimMonad(..))
+import Control.Monad.Primitive (PrimMonad(..))
 
 
 
-pitmanYor :: (PrimMonad f) =>
-             Double -- ^ a \in [0, 1]
-          -> Double -- ^ b > 0
-          -> Int    -- ^ number of samples
-          -> Gen (PrimState f)
-          -> f [Integer]
-pitmanYor a b n gen = do
-  ts <- go initial (n - 1)
+
+
+
+-- | Chinese Restaurant Process, based on Griffiths, Ghahramani 2011 
+crp :: PrimMonad m =>
+       Double -- ^ Concentration parameter (> 1)
+    -> Int -- ^ Total number of customers 
+    -> Prob m [Integer]
+crp a n = do
+  ts <- go crpInitial 1
   pure $ map getSum $ customers ts
   where
-    go acc 0 = pure acc
-    go acc i = do
-      acc' <- sample (pitmanYorSingle a b acc) gen
-      go acc' (i - 1)
+    go acc i
+      | i == n = pure acc
+      | otherwise = do
+          acc' <- crpSingle i acc a
+          go acc' (i + 1)
 
-
-pitmanYorSingle :: (PrimMonad m, Integral a) =>
-                   Double -- a \in [0, 1]
-                -> Double -- b > 0
-                -> Tables (Sum a)
-                -> Prob m (Tables (Sum a))
-pitmanYorSingle a b zs = do
+-- | CRP presentation based on Griffiths, Ghahramani
+crpSingle :: (PrimMonad m, Integral b) =>
+             Int
+          -> CRPTables (Sum b)
+          -> Double
+          -> Prob m (CRPTables (Sum b))
+crpSingle i zs a = do
   zn1 <- categorical probs
-  pure $ insert zn1 zs
+  pure $ crpInsert zn1 zs
   where
-    m = fromIntegral $ uniques zs
-    n = fromIntegral $ numCustomers zs
-    d = n + b
     probs = pms <> [pm1]
-    pm1 = (m * a + b) / d
-    pms = map (\x -> (fromIntegral (getSum x) - a) / d) $ customers zs
-
-
+    mks = getSum <$> customers zs -- # of customers sitting at each table
+    pms = map (\m -> fromIntegral m / (fromIntegral i - 1 + a)) mks
+    pm1 = a / (fromIntegral i - 1 + a)
 
 -- | Tables at the Chinese Restaurant
-newtype Tables c = Tables {
-  getTables :: IM.IntMap c } deriving (Eq, Show, Functor, Foldable)
+newtype CRPTables c = CRP {
+  getCRPTables :: IM.IntMap c } deriving (Eq, Show, Functor, Foldable)
 
-initial :: Tables (Sum Integer)
-initial = insert 0 $ Tables IM.empty
+-- | Initial state of the CRP : one customer sitting at table #0
+crpInitial :: CRPTables (Sum Integer)
+crpInitial = crpInsert 0 $ CRP IM.empty
 
-insert :: Num a => IM.Key -> Tables (Sum a) -> Tables (Sum a)
-insert k (Tables ts) = Tables $ IM.insertWith (<>) k (Sum 1) ts
+-- | Seat one customer at table 'k'
+crpInsert :: Num a => IM.Key -> CRPTables (Sum a) -> CRPTables (Sum a)
+crpInsert k (CRP ts) = CRP $ IM.insertWith (<>) k (Sum 1) ts
 
-fromList :: (Foldable t, Num a) =>
-            t IM.Key
-         -> Tables (Sum a)
-         -> Tables (Sum a)
-fromList xs z = foldl (flip insert) z xs
+-- -- | Number of tables
+-- uniques :: CRPTables a -> Int
+-- uniques (CRP ts) = length ts
 
-uniques :: Tables a -> Int
-uniques (Tables ts) = length ts
-
-customers :: Tables c -> [c]
-customers = map snd . IM.toList . getTables
-
-numCustomers :: (Foldable t, Functor t, Num a) => t (Sum a) -> a
-numCustomers = sum . fmap getSum
-
--- no bound check
-kthTableUnsafe :: Num a => IM.Key -> Tables (Sum a) -> a
-kthTableUnsafe k (Tables ts) = maybe 0 getSum (IM.lookup k ts)
-
-kthTable :: Num a => Int -> Tables (Sum a) -> Maybe a
-kthTable k ts
-  | k >= 0 = Just $ kthTableUnsafe k ts
-  | otherwise = Nothing 
+-- | Number of customers sitting at each table
+customers :: CRPTables c -> [c]
+customers = map snd . IM.toList . getCRPTables
 
 
 --
